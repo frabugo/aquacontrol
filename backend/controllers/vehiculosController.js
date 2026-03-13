@@ -116,9 +116,9 @@ exports.disponibles = async (req, res) => {
     const [rows] = await db.query(
       `SELECT v.*
          FROM vehiculos v
-         WHERE v.activo = 1 AND (v.repartidor_id IS NULL OR v.repartidor_id = ?)
-         ORDER BY v.repartidor_id = ? DESC, v.placa`,
-      [req.user.id, req.user.id]
+         WHERE v.activo = 1 AND v.repartidor_id = ?
+         ORDER BY v.placa`,
+      [req.user.id]
     );
     res.json({ data: rows });
   } catch (err) {

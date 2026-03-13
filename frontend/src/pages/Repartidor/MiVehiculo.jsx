@@ -312,36 +312,15 @@ export default function MiVehiculo() {
                 </button>
               </div>
             ) : (
-              /* No assigned vehicle — select from available */
-              <div>
-                {vehiculos.length === 0 ? (
-                  <div className="text-center py-8">
-                    <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                    </svg>
-                    <p className="text-sm text-slate-500">No hay vehiculos disponibles</p>
-                    <p className="text-xs text-slate-400 mt-1">Contacta a la encargada para que te asigne uno</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {vehiculos.map(v => (
-                      <button key={v.id} onClick={() => handleCrearRuta(v.id)} disabled={loadingAction}
-                        className="w-full flex items-center gap-3 px-4 py-3 border border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition text-left disabled:opacity-50">
-                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
-                          <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">{v.placa}</p>
-                          <p className="text-xs text-slate-500">
-                            {[v.marca, v.modelo, v.color].filter(Boolean).join(' · ') || 'Sin datos'}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              /* No tiene vehiculo asignado */
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-50 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-slate-700">No tienes vehiculo asignado</p>
+                <p className="text-xs text-slate-400 mt-1">Contacta a la encargada para que te asigne un vehiculo antes de iniciar tu jornada</p>
               </div>
             )}
           </div>

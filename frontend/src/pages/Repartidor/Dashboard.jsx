@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { useRepartidor } from '../../context/RepartidorContext';
 import { miRuta } from '../../services/rutasService';
+import { miVehiculo } from '../../services/vehiculosService';
 import { misPedidos } from '../../services/pedidosService';
 
 function formatS(n) {
@@ -31,15 +32,18 @@ export default function RepartidorDashboard() {
   const [ruta, setRuta]         = useState(null);
   const [pedidos, setPedidos]   = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [tieneVehiculo, setTieneVehiculo] = useState(false);
   const [hora, setHora]         = useState(new Date());
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [rutaRes, pedRes] = await Promise.all([
+      const [rutaRes, pedRes, vehRes] = await Promise.all([
         miRuta().catch(() => ({ data: null })),
         misPedidos({}).catch(() => ({ data: [] })),
+        miVehiculo().catch(() => ({ data: null })),
       ]);
+      setTieneVehiculo(!!(vehRes.data));
       setRuta(rutaRes.data || null);
       setPedidos(pedRes.data || []);
     } catch { /* handled */ }
@@ -144,12 +148,21 @@ export default function RepartidorDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
               </svg>
             </div>
-            <p className="text-slate-500 font-medium">Sin ruta activa</p>
-            <p className="text-xs text-slate-400 mt-1">Selecciona un vehiculo para iniciar tu jornada</p>
-            <button onClick={() => navigate('/mi-vehiculo')}
-              className="mt-4 px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm">
-              Iniciar jornada
-            </button>
+            {tieneVehiculo ? (
+              <>
+                <p className="text-slate-500 font-medium">Sin ruta activa</p>
+                <p className="text-xs text-slate-400 mt-1">Tienes vehiculo asignado, inicia tu jornada</p>
+                <button onClick={() => navigate('/mi-vehiculo')}
+                  className="mt-4 px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm">
+                  Iniciar jornada
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-slate-500 font-medium">Sin vehiculo asignado</p>
+                <p className="text-xs text-slate-400 mt-1">Contacta a la encargada para que te asigne un vehiculo</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

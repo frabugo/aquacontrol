@@ -215,6 +215,18 @@ exports.create = async (req, res) => {
       return res.status(400).json({ error: 'Se requiere vehículo' });
     }
 
+    // Validar que el vehículo esté asignado al repartidor
+    const [[vehAsignado]] = await db.query(
+      'SELECT id, repartidor_id FROM vehiculos WHERE id = ? AND activo = 1',
+      [vehiculo_id]
+    );
+    if (!vehAsignado) {
+      return res.status(400).json({ error: 'El vehículo no existe o está inactivo' });
+    }
+    if (!vehAsignado.repartidor_id || vehAsignado.repartidor_id !== repartidor_id) {
+      return res.status(400).json({ error: 'No puedes iniciar jornada sin un vehículo asignado. Pide a la encargada que te asigne uno.' });
+    }
+
     const [result] = await db.query(
       `INSERT INTO rutas (numero, repartidor_id, vehiculo_id, fecha, creado_por)
        VALUES ('', ?, ?, ?, ?)`,
