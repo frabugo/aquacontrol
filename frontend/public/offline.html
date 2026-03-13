@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sin conexión — AquaControl</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, sans-serif;
+      background: #0F172A;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .icon  { font-size: 72px; margin-bottom: 20px }
+    h1     { font-size: 24px; margin: 0 0 10px }
+    p      { color: #94a3b8; font-size: 15px; line-height: 1.6 }
+    button {
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: #2563EB;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="icon">📡</div>
+    <h1>Sin conexión</h1>
+    <p>Verifica tu conexión a internet<br>y vuelve a intentarlo.</p>
+    <button onclick="location.reload()">🔄 Reintentar</button>
+  </div>
+</body>
+</html>

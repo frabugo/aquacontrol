@@ -1,0 +1,6 @@
+{
+  "verbose": true,
+  "watch": ["controllers/", "routes/", "middleware/", "helpers/", "index.js", "db.js"],
+  "ignore": ["backups/", "scripts/", "node_modules/"],
+  "ext": "js"
+}
