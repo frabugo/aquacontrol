@@ -5,6 +5,7 @@ import DetalleVenta from './DetalleVenta';
 import ComprobanteModal from './ComprobanteModal';
 import { listarVentas, cancelarVenta, obtenerVenta } from '../../services/ventasService';
 import useMetodosPago from '../../hooks/useMetodosPago';
+import useCajaAbierta from '../../hooks/useCajaAbierta';
 
 const ESTADO_BADGE = {
   pagada:    { cls: 'bg-green-100 text-green-700',   label: 'Pagada'    },
@@ -140,7 +141,9 @@ export default function Ventas() {
         </div>
         <button
           onClick={() => setFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+          disabled={!cajaAbierta}
+          title={!cajaAbierta ? 'Abre la caja primero' : undefined}
+          className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-lg transition shadow-sm ${cajaAbierta ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-300 cursor-not-allowed'}`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

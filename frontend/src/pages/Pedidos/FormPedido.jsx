@@ -889,15 +889,13 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0">
-            {!cajaAbierta && (
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg mr-auto">Abre la caja para crear pedidos</span>
-            )}
+
             <button type="button" onClick={onClose}
               className="px-5 py-2.5 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-100 transition">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || lineas.length === 0 || !cajaAbierta}
-              title={!cajaAbierta ? 'Abre la caja primero' : undefined}
+            <button type="submit" disabled={loading || lineas.length === 0}
+
               className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition flex items-center gap-2">
               {loading && (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

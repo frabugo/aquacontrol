@@ -8,7 +8,7 @@ const getApiUrl = () => {
   if (import.meta.env.DEV) return '';
 
   // En producción, usar la misma IP/host del navegador
-  return import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001`;
+  return import.meta.env.VITE_API_URL || '';
 };
 
 export const API_BASE = getApiUrl();

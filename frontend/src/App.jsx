@@ -47,6 +47,7 @@ const VentaAlPaso       = lazy(() => import('./pages/Repartidor/VentaAlPaso'));
 const CobroDeuda        = lazy(() => import('./pages/Repartidor/CobroDeuda'));
 const MisPedidos        = lazy(() => import('./pages/MisPedidos'));
 const MonitoreoMapa     = lazy(() => import('./pages/Central/MonitoreoMapa'));
+const PanelCentral      = lazy(() => import('./pages/Central/PanelCentral'));
 const ServidorConfig    = lazy(() => import('./pages/Config/ServidorConfig'));
 const ApisExternas      = lazy(() => import('./pages/Config/ApisExternas'));
 const ConfigGeneral     = lazy(() => import('./pages/Config/ConfigGeneral'));
@@ -68,6 +69,7 @@ const LazySpinner = () => (
 
 function HomeRedirect() {
   const { user } = useAuth();
+  if (user?.rol === 'superadmin' || user?.rol === 'soporte') return <Navigate to="/central" replace />;
   if (user?.rol === 'chofer') return <Navigate to="/repartidor/dashboard" replace />;
   return <Dashboard />;
 }
@@ -158,6 +160,9 @@ export default function App() {
           {/* Central — monitoreo */}
           <Route path="/monitoreo" element={
             <PrivateRoute><MonitoreoMapa /></PrivateRoute>
+          } />
+          <Route path="/central" element={
+            <PrivateRoute><PanelCentral /></PrivateRoute>
           } />
 
           {/* Reparto (admin/encargada) */}
