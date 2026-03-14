@@ -384,13 +384,15 @@ exports.create = async (req, res) => {
       const descL          = Number(l.descuento_linea) || 0;
       const subtotalLinea  = (precioU - descL) * cantidad;
 
+      const garantiaLinea = (l.tipo_linea === 'prestamo') ? (Number(l.garantia) || 0) : 0;
+
       await conn.query(
         `INSERT INTO venta_detalle
            (venta_id, presentacion_id, tipo_linea, cantidad, vacios_recibidos,
-            precio_unitario, descuento_linea, subtotal, carga_id, pedido_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            precio_unitario, descuento_linea, subtotal, carga_id, pedido_id, garantia)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [ventaId, l.presentacion_id, l.tipo_linea, cantidad, vacios,
-         precioU, descL, subtotalLinea, carga_id || null, pedido_id || null]
+         precioU, descL, subtotalLinea, carga_id || null, pedido_id || null, garantiaLinea]
       );
 
       // Registrar movimiento de stock (trazabilidad)
@@ -437,6 +439,40 @@ exports.create = async (req, res) => {
         'UPDATE clientes SET bidones_prestados = bidones_prestados + ? WHERE id = ?',
         [totalPrestamo, cliente_id]
       );
+    }
+
+    // Cobrar garantías de préstamos
+    let totalGarantia = 0;
+    for (const l of lineas) {
+      if (l.tipo_linea === 'prestamo' && Number(l.garantia) > 0) {
+        totalGarantia += Number(l.garantia);
+      }
+    }
+    // También garantías de préstamos automáticos (recargas sin vacío devuelto)
+    // Nota: los préstamos automáticos no llevan garantía, solo los explícitos
+
+    if (totalGarantia > 0 && cliente_id) {
+      // Sumar saldo_garantia al cliente
+      await conn.query(
+        'UPDATE clientes SET saldo_garantia = saldo_garantia + ? WHERE id = ?',
+        [totalGarantia, cliente_id]
+      );
+      // Registrar ingreso en caja
+      const [[cajaAbierta]] = await conn.query(
+        "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+      );
+      if (cajaAbierta) {
+        const { getCategoriaId } = require('../helpers/categoriaCaja');
+        const catGar = await getCategoriaId('Garantía recibida', conn);
+        const [[cliNombre]] = await conn.query('SELECT nombre FROM clientes WHERE id = ?', [cliente_id]);
+        await conn.query(
+          `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, categoria_id)
+           VALUES (?, 'ingreso', 'efectivo', ?, ?, ?, ?, ?, ?)`,
+          [cajaAbierta.id, totalGarantia,
+           `Garantía x${totalPrestamo} bidón(es) - ${cliNombre?.nombre || 'Cliente'}`,
+           cliente_id, ventaId, req.user.id, catGar]
+        );
+      }
     }
 
     // Update client balance if credit used

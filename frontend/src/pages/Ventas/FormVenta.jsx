@@ -33,6 +33,7 @@ function newLine(id) {
     precio_unitario: '',
     descuento_linea: '0',
     precio_origen: null,
+    garantia: '',
   };
 }
 
@@ -224,6 +225,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
           cantidad:         Number(l.cantidad) || 1,
           vacios_recibidos: Number(l.vacios_recibidos) || 0,
           precio_unitario:  Number(l.precio_unitario) || 0,
+          garantia:         Number(l.garantia) || 0,
           descuento_linea:  Number(l.descuento_linea) || 0,
         })),
       };
@@ -473,6 +475,15 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                           <div className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-right">
                             <div className="text-xs text-slate-400">Subtotal</div>
                             <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
+                            {l.tipo_linea === 'prestamo' && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-xs text-amber-600">Garantia S/</span>
+                                <input type="number" inputMode="decimal" min="0" step="0.01"
+                                  className="w-20 px-2 py-1 text-xs border border-amber-300 rounded-lg text-right bg-amber-50"
+                                  value={l.garantia} onChange={e => updateLine(l.id, { garantia: e.target.value })}
+                                  placeholder="0.00" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

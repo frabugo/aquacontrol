@@ -195,7 +195,36 @@ exports.create = async (req, res) => {
       }
     }
 
-    // 2. Restar bidones_prestados del cliente
+    // 2. Restar bidones_prestados del cliente y devolver garantía si aplica
+    // Buscar si hay garantía pendiente de este cliente (proporcional)
+    const [[cliGar]] = await conn.query(
+      'SELECT saldo_garantia, bidones_prestados, nombre FROM clientes WHERE id = ? FOR UPDATE', [cliente_id]
+    );
+    const garantiaPorBidon = (cliGar && Number(cliGar.bidones_prestados) > 0 && Number(cliGar.saldo_garantia) > 0)
+      ? Number(cliGar.saldo_garantia) / Number(cliGar.bidones_prestados) : 0;
+    const garantiaDevolver = garantiaPorBidon > 0 ? Math.round(garantiaPorBidon * qty * 100) / 100 : 0;
+
+    if (garantiaDevolver > 0) {
+      await conn.query(
+        'UPDATE clientes SET saldo_garantia = GREATEST(0, saldo_garantia - ?) WHERE id = ?',
+        [garantiaDevolver, cliente_id]
+      );
+      const [[cajaAb]] = await conn.query(
+        "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+      );
+      if (cajaAb) {
+        const { getCategoriaId } = require('../helpers/categoriaCaja');
+        const catDev = await getCategoriaId('Devolución garantía', conn);
+        await conn.query(
+          `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, registrado_por, categoria_id)
+           VALUES (?, 'egreso', 'efectivo', ?, ?, ?, ?, ?)`,
+          [cajaAb.id, garantiaDevolver,
+           `Devolución garantía x${qty} bidón(es) - ${cliGar?.nombre || 'Cliente'}`,
+           cliente_id, req.user.id, catDev]
+        );
+      }
+    }
+
     await conn.query(
       'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
       [qty, cliente_id]
