@@ -5,6 +5,7 @@ import {
   clientesPrestamos, detallePrestamos, pendientesPorVenta,
 } from '../../services/devolucionesService';
 import { listarClientes } from '../../services/clientesService';
+import { listarPresentaciones } from '../../services/presentacionesService';
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
@@ -41,6 +42,9 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   const [selected, setSelected]     = useState(null);      // línea seleccionada
   const [cantidad, setCantidad]     = useState('');
   const [notas, setNotas]           = useState('');
+  const [modoManual, setModoManual] = useState(false);
+  const [presentaciones, setPresentaciones] = useState([]);
+  const [presSeleccionada, setPresSeleccionada] = useState('');
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const timer = useRef(null);
@@ -49,6 +53,16 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
     if (isOpen) {
       setClienteInput(''); setClientes([]); setCliente(null); setShowSugg(false);
       setPendientes([]); setSelected(null); setCantidad(''); setNotas(''); setError('');
+      setModoManual(false); setPresSeleccionada('');
+    }
+  }, [isOpen]);
+
+  // Cargar presentaciones retornables
+  useEffect(() => {
+    if (isOpen) {
+      listarPresentaciones({ activo: 1, limit: 100 })
+        .then(r => setPresentaciones((Array.isArray(r.data) ? r.data : []).filter(p => p.es_retornable)))
+        .catch(() => setPresentaciones([]));
     }
   }, [isOpen]);
 
@@ -95,17 +109,19 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!cliente) return setError('Selecciona un cliente');
-    if (!selected) return setError('Selecciona una venta con préstamo');
+    if (!selected && !modoManual) return setError('Selecciona una venta con préstamo');
+    if (modoManual && !presSeleccionada) return setError('Selecciona un producto');
     const qty = Number(cantidad);
     if (!qty || qty <= 0) return setError('La cantidad debe ser mayor a 0');
-    if (qty > selected.pendiente) return setError(`Máximo ${selected.pendiente} para esa venta`);
+    if (selected && qty > selected.pendiente) return setError(`Máximo ${selected.pendiente} para esa venta`);
+    if (modoManual && qty > Number(cliente.bidones_prestados)) return setError(`Máximo ${cliente.bidones_prestados} bidones prestados`);
 
     setError(''); setLoading(true);
     try {
       await crearDevolucion({
         cliente_id: cliente.id,
-        presentacion_id: selected.presentacion_id,
-        venta_id: selected.venta_id,
+        presentacion_id: modoManual ? Number(presSeleccionada) : selected.presentacion_id,
+        venta_id: selected?.venta_id || null,
         cantidad: qty,
         fecha: today(),
         notas: notas.trim() || null,
@@ -188,9 +204,41 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                   <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : pendientes.length === 0 ? (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-6 text-center text-sm text-slate-400">
-                  No tiene préstamos pendientes de devolución
-                </div>
+                Number(cliente.bidones_prestados) > 0 ? (
+                  <div className="space-y-3">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+                      Este cliente tiene {cliente.bidones_prestados} bidones prestados (carga inicial). Selecciona producto y cantidad para devolver.
+                    </div>
+                    {!modoManual ? (
+                      <button type="button" onClick={() => setModoManual(true)}
+                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition">
+                        Registrar devolución manual
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Producto</label>
+                          <select value={presSeleccionada} onChange={e => { setPresSeleccionada(e.target.value); setError(''); }}
+                            className={inputCls}>
+                            <option value="">Seleccionar producto...</option>
+                            {presentaciones.map(p => (
+                              <option key={p.id} value={p.id}>{p.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Cantidad a devolver</label>
+                          <input type="number" min="1" max={cliente.bidones_prestados} value={cantidad}
+                            onChange={e => setCantidad(e.target.value)} className={inputCls} placeholder="1" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-6 text-center text-sm text-slate-400">
+                    No tiene préstamos pendientes de devolución
+                  </div>
+                )
               ) : (
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
