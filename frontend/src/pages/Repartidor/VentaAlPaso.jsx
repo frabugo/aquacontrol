@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { miRuta, getStockVehiculo, ventaRapida, getVentasAlPaso, anularVentaAlPaso } from '../../services/rutasService';
 import { listarClientes } from '../../services/clientesService';
+import { getPrecioSugerido } from '../../services/ventasService';
 import useMetodosPago from '../../hooks/useMetodosPago';
 import useCajaAbierta from '../../hooks/useCajaAbierta';
 
@@ -75,16 +76,24 @@ export default function VentaAlPaso() {
 
   function agregarLinea(item) {
     if (lineas.find(l => l.presentacion_id === item.presentacion_id)) return;
-    setLineas(prev => [...prev, {
+    const tipoLinea = item.es_retornable ? 'recarga' : 'producto';
+    const newLine = {
       presentacion_id: item.presentacion_id,
       nombre: item.presentacion_nombre,
       es_retornable: item.es_retornable,
-      tipo_linea: item.es_retornable ? 'recarga' : 'producto',
+      tipo_linea: tipoLinea,
       cantidad: 1,
       vacios_recibidos: 0,
       precio_unitario: Number(item.precio_base) || '',
       max_disponible: getDisponibles(item),
-    }]);
+    };
+    const idx = lineas.length;
+    setLineas(prev => [...prev, newLine]);
+    if (clienteId) {
+      getPrecioSugerido({ cliente_id: clienteId, presentacion_id: item.presentacion_id, tipo_linea: tipoLinea })
+        .then(r => { if (r.precio) setLineas(prev => prev.map((l, i) => i === idx ? { ...l, precio_unitario: Number(r.precio) } : l)); })
+        .catch(() => {});
+    }
   }
 
   function quitarLinea(idx) {
@@ -97,6 +106,11 @@ export default function VentaAlPaso() {
       const updated = { ...l, [field]: val };
       if (field === 'tipo_linea' && val === 'recarga') {
         updated.vacios_recibidos = updated.cantidad;
+      }
+      if (field === 'tipo_linea' && clienteId) {
+        getPrecioSugerido({ cliente_id: clienteId, presentacion_id: updated.presentacion_id, tipo_linea: val })
+          .then(r => { if (r.precio) setLineas(prev => prev.map((ll, j) => j === idx ? { ...ll, precio_unitario: Number(r.precio) } : ll)); })
+          .catch(() => {});
       }
       return updated;
     }));
