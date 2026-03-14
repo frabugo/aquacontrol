@@ -31,7 +31,7 @@ export default function MiCaja() {
 
   // Gasto form
   const [gastoOpen, setGastoOpen]     = useState(false);
-  const [tipoGasto, setTipoGasto]     = useState('combustible');
+  const [tipoGasto, setTipoGasto]     = useState('egreso');
   const [montoGasto, setMontoGasto]   = useState('');
   const [descGasto, setDescGasto]     = useState('');
   const [metodoGasto, setMetodoGasto] = useState('efectivo');
@@ -187,21 +187,9 @@ export default function MiCaja() {
             )}
           </div>
 
-          <div className="space-y-2 mb-3">
-            {[
-              { label: 'Combustible',  val: ruta.gasto_combustible },
-              { label: 'Alimentación', val: ruta.gasto_alimentacion },
-              { label: 'Otros',        val: ruta.gasto_otros },
-            ].map(({ label, val }) => (
-              <div key={label} className="flex justify-between text-sm">
-                <span className="text-slate-500">{label}</span>
-                <span className="font-medium text-red-600">{formatS(val)}</span>
-              </div>
-            ))}
-            <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold">
-              <span className="text-slate-700">Total gastos</span>
-              <span className="text-red-700">{formatS(ruta.total_gastos)}</span>
-            </div>
+          <div className="flex justify-between text-sm font-bold mb-3">
+            <span className="text-slate-700">Total gastos</span>
+            <span className="text-red-700">{formatS(ruta.total_gastos)}</span>
           </div>
 
           {gastoOpen && (
@@ -218,7 +206,7 @@ export default function MiCaja() {
                   <label className="block text-xs text-slate-500 mb-0.5">Categoría</label>
                   <select className={inputCls} value={catGasto} onChange={e => setCatGasto(e.target.value)} required>
                     <option value="">Seleccionar...</option>
-                    {categorias.filter(cat => cat.tipo === tipoGasto && cat.activo && !['Venta','Cobro deuda','Saldo inicial'].includes(cat.nombre)).map(cat => (
+                    {categorias.filter(cat => cat.tipo === tipoGasto && cat.activo).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                     ))}
                   </select>
