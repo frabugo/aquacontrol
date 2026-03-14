@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 
-export default function ResumenBidones({ cajaId }) {
+export default function ResumenBidones({ cajaId, autoOpen = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
 
   useEffect(() => {
     if (!cajaId || !open) return;
@@ -16,8 +16,8 @@ export default function ResumenBidones({ cajaId }) {
   }, [cajaId, open]);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <button onClick={() => setOpen(!open)}
+    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${autoOpen ? '' : ''}`}>
+      {!autoOpen && <button onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition">
         <div className="flex items-center gap-2">
           <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@ export default function ResumenBidones({ cajaId }) {
         <svg className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </button>}
 
       {open && (
         <div className="px-5 pb-5 border-t border-slate-100">

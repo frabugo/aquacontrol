@@ -4,7 +4,6 @@ import AbrirCajaModal  from './AbrirCajaModal';
 import CerrarCajaModal from './CerrarCajaModal';
 import MovimientoModal from './MovimientoModal';
 import TicketCierre    from './TicketCierre';
-import ResumenBidones  from './ResumenBidones';
 import { getCajaHoy, reabrirCaja, getMovimientos, anularMovimiento, getCajasRepartidores } from '../../services/cajaService';
 import { entregarCaja } from '../../services/rutasService';
 import useMetodosPago from '../../hooks/useMetodosPago';
@@ -503,9 +502,6 @@ export default function Caja() {
           );
         })}
       </div>
-
-      {/* ── Resumen bidones ── */}
-      {caja && <ResumenBidones cajaId={caja.id} />}
 
       {/* ── Tabla de movimientos ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

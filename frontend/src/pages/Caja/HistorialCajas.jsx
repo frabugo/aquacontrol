@@ -200,6 +200,14 @@ export default function HistorialCajas() {
                           </svg>
                           Ticket
                         </button>
+                        <button onClick={() => setReporteCaja(c)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition whitespace-nowrap"
+                          title="Resumen de bidones">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                          Reporte
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -222,6 +230,29 @@ export default function HistorialCajas() {
       </div>
 
       {/* Ticket cierre */}
+      {/* Modal Reporte Bidones */}
+      {reporteCaja && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setReporteCaja(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Reporte de bidones</h2>
+                <p className="text-sm text-slate-400">
+                  {formatFechaCorta(reporteCaja.fecha?.slice(0, 10))}
+                  {' · '}
+                  {reporteCaja.hora_apertura ? new Date(reporteCaja.hora_apertura).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  {reporteCaja.cerrada_en ? (' - ' + new Date(reporteCaja.cerrada_en).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })) : ' - Abierta'}
+                </p>
+              </div>
+              <button onClick={() => setReporteCaja(null)} className="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            <div className="p-2">
+              <ResumenBidones cajaId={reporteCaja.id} autoOpen />
+            </div>
+          </div>
+        </div>
+      )}
+
       {ticketCaja && (
         <TicketCierre caja={ticketCaja.caja} saldos={ticketCaja.saldos} onClose={() => setTicketCaja(null)} />
       )}
