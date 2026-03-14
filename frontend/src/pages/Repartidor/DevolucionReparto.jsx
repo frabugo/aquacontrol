@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { clientesPrestamos } from '../../services/devolucionesService';
-import { devolverDesdeReparto } from '../../services/devolucionesService';
+import { miRuta } from '../../services/rutasService';
+import { devolverDesdeReparto, bidonPerdidoRuta } from '../../services/devolucionesService';
 import { listarPresentaciones } from '../../services/presentacionesService';
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
@@ -20,8 +21,17 @@ export default function DevolucionReparto() {
   const [notas, setNotas]                   = useState('');
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
+  const [modoPerdido, setModoPerdido]       = useState(false);
+  const [montoPerdido, setMontoPerdido]     = useState('');
+  const [metodoPerdido, setMetodoPerdido]   = useState('efectivo');
   const [exito, setExito]                   = useState('');
   const [buscando, setBuscando]             = useState(false);
+  const [rutaActiva, setRutaActiva]         = useState(null);
+
+  // Cargar ruta activa
+  useEffect(() => {
+    miRuta().then(r => setRutaActiva(r.data || null)).catch(() => {});
+  }, []);
 
   // Cargar presentaciones retornables
   useEffect(() => {
@@ -57,21 +67,38 @@ export default function DevolucionReparto() {
     if (!qty || qty <= 0) return setError('La cantidad debe ser mayor a 0');
     if (qty > maxQty) return setError(`Maximo ${maxQty} bidones`);
 
+    if (modoPerdido && (!montoPerdido || Number(montoPerdido) <= 0)) return setError('El monto a cobrar es requerido');
+
     setLoading(true);
     try {
-      await devolverDesdeReparto({
-        cliente_id: clienteSel.id,
-        presentacion_id: Number(presentacionId),
-        cantidad: qty,
-        notas: notas.trim() || undefined,
-      });
-      setExito(`Devolucion registrada: ${qty} bidon(es) de ${clienteSel.nombre}`);
+      if (modoPerdido) {
+        await bidonPerdidoRuta({
+          cliente_id: clienteSel.id,
+          presentacion_id: Number(presentacionId),
+          cantidad: qty,
+          monto: Number(montoPerdido),
+          metodo_pago: metodoPerdido,
+          ruta_id: rutaActiva?.id,
+          notas: notas.trim() || undefined,
+        });
+        setExito(`Bidon perdido cobrado: ${qty} bidon(es) de ${clienteSel.nombre} - S/${Number(montoPerdido).toFixed(2)}`);
+      } else {
+        await devolverDesdeReparto({
+          cliente_id: clienteSel.id,
+          presentacion_id: Number(presentacionId),
+          cantidad: qty,
+          notas: notas.trim() || undefined,
+        });
+        setExito(`Devolucion registrada: ${qty} bidon(es) de ${clienteSel.nombre}`);
+      }
       // Reset form
       setClienteSel(null);
       setBusqueda('');
       setPresentacionId('');
       setCantidad('');
       setNotas('');
+      setModoPerdido(false);
+      setMontoPerdido('');
       buscarClientes('');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al registrar devolucion');
@@ -201,11 +228,43 @@ export default function DevolucionReparto() {
             />
           </div>
 
+          {/* Modo: devolucion o bidon perdido */}
+          {clienteSel && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setModoPerdido(false)}
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl border transition ${!modoPerdido ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}>
+                Devolver vacio
+              </button>
+              <button type="button" onClick={() => setModoPerdido(true)}
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl border transition ${modoPerdido ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 text-slate-600'}`}>
+                Bidon perdido
+              </button>
+            </div>
+          )}
+
+          {modoPerdido && clienteSel && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Monto a cobrar (S/)</label>
+                <input type="number" min="0.01" step="0.01" className={inputCls} value={montoPerdido}
+                  onChange={e => setMontoPerdido(e.target.value)} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Metodo de pago</label>
+                <select className={inputCls} value={metodoPerdido} onChange={e => setMetodoPerdido(e.target.value)}>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="yape">Yape</option>
+                </select>
+              </div>
+            </>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !clienteSel || !presentacionId || !cantidad}
-            className="w-full py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center justify-center gap-2"
+            disabled={loading || !clienteSel || !presentacionId || !cantidad || (modoPerdido && !montoPerdido)}
+            className={`w-full py-3 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center justify-center gap-2 ${modoPerdido ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             {loading ? (
               <>
@@ -213,7 +272,7 @@ export default function DevolucionReparto() {
                 Registrando...
               </>
             ) : (
-              'Registrar devolucion'
+              modoPerdido ? 'Cobrar bidon perdido' : 'Registrar devolucion'
             )}
           </button>
         </form>
