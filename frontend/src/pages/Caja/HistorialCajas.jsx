@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
+import ResumenBidones from './ResumenBidones';
 import { getHistorial, getMovimientosCaja, getCajaById } from '../../services/cajaService';
 import useMetodosPago from '../../hooks/useMetodosPago';
 import TicketCierre from './TicketCierre';
