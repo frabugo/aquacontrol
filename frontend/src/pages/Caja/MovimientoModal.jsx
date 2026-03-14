@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addMovimiento } from '../../services/cajaService';
+import api from '../../services/api';
 import useMetodosPago from '../../hooks/useMetodosPago';
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
@@ -25,11 +26,15 @@ export default function MovimientoModal({ isOpen, onClose, onSaved }) {
   const [descripcion, setDescripcion] = useState('');
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState('');
+  const [categorias, setCategorias]   = useState([]);
+  const [categoriaId, setCategoriaId] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setTipo('ingreso'); setMetodo('efectivo');
       setMonto(''); setDescripcion(''); setError('');
+      setCategoriaId('');
+      api.get('/config/categorias-caja').then(r => setCategorias(r.data || [])).catch(() => setCategorias([]));
     }
   }, [isOpen]);
 
@@ -40,6 +45,7 @@ export default function MovimientoModal({ isOpen, onClose, onSaved }) {
     setError('');
     if (!monto || Number(monto) <= 0) return setError('El monto debe ser mayor a 0');
     if (!descripcion.trim())           return setError('La descripción es requerida');
+    if (!categoriaId)                    return setError('Selecciona una categoría');
 
     setLoading(true);
     try {
@@ -48,6 +54,7 @@ export default function MovimientoModal({ isOpen, onClose, onSaved }) {
         metodo_pago: metodo,
         monto:       parseFloat(monto),
         descripcion: descripcion.trim(),
+        categoria_id: Number(categoriaId),
       });
       onSaved(mov);
       onClose();
@@ -108,6 +115,18 @@ export default function MovimientoModal({ isOpen, onClose, onSaved }) {
                 );
               })}
             </div>
+          </div>
+
+          {/* Categoria */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Categoría *</label>
+            <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}
+              className={inputCls} required>
+              <option value="">Seleccionar...</option>
+              {categorias.filter(cat => cat.tipo === tipo && cat.activo).map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+              ))}
+            </select>
           </div>
 
           {/* Monto */}

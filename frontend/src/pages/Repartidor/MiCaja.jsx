@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { miRuta, getMovimientosRuta, registrarGasto, solicitarEntrega } from '../../services/rutasService';
+import api from '../../services/api';
 import useMetodosPago from '../../hooks/useMetodosPago';
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
@@ -35,6 +36,8 @@ export default function MiCaja() {
   const [descGasto, setDescGasto]     = useState('');
   const [metodoGasto, setMetodoGasto] = useState('efectivo');
   const [loadingGasto, setLoadingGasto] = useState(false);
+  const [categorias, setCategorias]     = useState([]);
+  const [catGasto, setCatGasto]         = useState('');
   const [loadingEntrega, setLoadingEntrega] = useState(false);
   const [error, setError]             = useState('');
 
@@ -57,6 +60,9 @@ export default function MiCaja() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    api.get('/config/categorias-caja').then(r => setCategorias(r.data || [])).catch(() => []);
+  }, []);
 
   async function handleGasto(e) {
     e.preventDefault();
@@ -65,12 +71,14 @@ export default function MiCaja() {
     setError('');
     try {
       await registrarGasto(ruta.id, {
-        tipo: tipoGasto,
+        clasificacion: tipoGasto === 'ingreso' ? 'ingreso' : 'egreso',
         monto: Number(montoGasto),
         descripcion: descGasto.trim() || null,
         metodo_pago: metodoGasto,
+        categoria_id: catGasto ? Number(catGasto) : null,
       });
       setGastoOpen(false);
+      setCatGasto('');
       setMontoGasto('');
       setDescGasto('');
       fetchData();
@@ -202,9 +210,17 @@ export default function MiCaja() {
                 <div>
                   <label className="block text-xs text-slate-500 mb-0.5">Tipo</label>
                   <select className={inputCls} value={tipoGasto} onChange={e => setTipoGasto(e.target.value)}>
-                    <option value="combustible">Combustible</option>
-                    <option value="alimentacion">Alimentación</option>
-                    <option value="otros">Otros</option>
+                    <option value="egreso">Egreso</option>
+                    <option value="ingreso">Ingreso</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-0.5">Categoría</label>
+                  <select className={inputCls} value={catGasto} onChange={e => setCatGasto(e.target.value)} required>
+                    <option value="">Seleccionar...</option>
+                    {categorias.filter(cat => cat.tipo === tipoGasto && cat.activo && !['Venta','Cobro deuda','Saldo inicial'].includes(cat.nombre)).map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

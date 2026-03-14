@@ -304,7 +304,7 @@ export default function HistorialCajas() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0">
                   <tr className="bg-slate-50 border-b border-slate-100 text-left">
-                    {['Fecha / Hora', 'Origen', 'Tipo', 'Metodo', 'Descripcion', 'Monto'].map(h => (
+                    {['Fecha / Hora', 'Origen', 'Tipo', 'Categoria', 'Metodo', 'Descripcion', 'Monto'].map(h => (
                       <th key={h} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -312,10 +312,10 @@ export default function HistorialCajas() {
                 <tbody className="divide-y divide-slate-50">
                   {movLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i}>{[1,2,3,4,5,6].map(j => <td key={j} className="px-4 py-3"><div className="h-4 bg-slate-100 animate-pulse rounded w-16" /></td>)}</tr>
+                      <tr key={i}>{[1,2,3,4,5,6,7].map(j => <td key={j} className="px-4 py-3"><div className="h-4 bg-slate-100 animate-pulse rounded w-16" /></td>)}</tr>
                     ))
                   ) : movs.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Sin movimientos</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Sin movimientos</td></tr>
                   ) : movs.map(m => {
                     const tipoInfo   = TIPO_MOV[m.tipo]   ?? TIPO_MOV.ajuste;
                     const metCfg = metodos.find(x => x.nombre === m.metodo_pago);
@@ -341,6 +341,9 @@ export default function HistorialCajas() {
                         </td>
                         <td className="px-4 py-2.5">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isAnulado ? 'bg-slate-100 text-slate-400 line-through' : tipoInfo.cls}`}>{tipoInfo.label}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                          {m.categoria_nombre || '—'}
                         </td>
                         <td className="px-4 py-2.5">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isAnulado ? 'bg-slate-100 text-slate-400' : metodoInfo.cls}`}>{metodoInfo.label}</span>
