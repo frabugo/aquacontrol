@@ -3,6 +3,7 @@ import Layout from '../../components/Layout';
 import {
   listarDevoluciones, crearDevolucion, anularDevolucion,
   clientesPrestamos, detallePrestamos, pendientesPorVenta,
+  bidonPerdido,
 } from '../../services/devolucionesService';
 import { listarClientes } from '../../services/clientesService';
 import { listarPresentaciones } from '../../services/presentacionesService';
@@ -43,6 +44,9 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   const [cantidad, setCantidad]     = useState('');
   const [notas, setNotas]           = useState('');
   const [modoManual, setModoManual] = useState(false);
+  const [modoPerdido, setModoPerdido] = useState(false);
+  const [montoPerdido, setMontoPerdido] = useState('');
+  const [metodoPerdido, setMetodoPerdido] = useState('efectivo');
   const [presentaciones, setPresentaciones] = useState([]);
   const [presSeleccionada, setPresSeleccionada] = useState('');
   const [loading, setLoading]       = useState(false);
@@ -53,7 +57,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
     if (isOpen) {
       setClienteInput(''); setClientes([]); setCliente(null); setShowSugg(false);
       setPendientes([]); setSelected(null); setCantidad(''); setNotas(''); setError('');
-      setModoManual(false); setPresSeleccionada('');
+      setModoManual(false); setModoPerdido(false); setPresSeleccionada(''); setMontoPerdido(''); setMetodoPerdido('efectivo');
     }
   }, [isOpen]);
 
@@ -109,23 +113,35 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!cliente) return setError('Selecciona un cliente');
-    if (!selected && !modoManual) return setError('Selecciona una venta con préstamo');
-    if (modoManual && !presSeleccionada) return setError('Selecciona un producto');
+    if (!selected && !modoManual && !modoPerdido) return setError('Selecciona una venta con préstamo');
+    if ((modoManual || modoPerdido) && !presSeleccionada) return setError('Selecciona un producto');
     const qty = Number(cantidad);
     if (!qty || qty <= 0) return setError('La cantidad debe ser mayor a 0');
     if (selected && qty > selected.pendiente) return setError(`Máximo ${selected.pendiente} para esa venta`);
-    if (modoManual && qty > Number(cliente.bidones_prestados)) return setError(`Máximo ${cliente.bidones_prestados} bidones prestados`);
+    if ((modoManual || modoPerdido) && qty > Number(cliente.bidones_prestados)) return setError(`Máximo ${cliente.bidones_prestados} bidones prestados`);
+    if (modoPerdido && (!montoPerdido || Number(montoPerdido) <= 0)) return setError('El monto a cobrar es requerido');
 
     setError(''); setLoading(true);
     try {
-      await crearDevolucion({
-        cliente_id: cliente.id,
-        presentacion_id: modoManual ? Number(presSeleccionada) : selected.presentacion_id,
-        venta_id: selected?.venta_id || null,
-        cantidad: qty,
-        fecha: today(),
-        notas: notas.trim() || null,
-      });
+      if (modoPerdido) {
+        await bidonPerdido({
+          cliente_id: cliente.id,
+          presentacion_id: Number(presSeleccionada),
+          cantidad: qty,
+          monto: Number(montoPerdido),
+          metodo_pago: metodoPerdido,
+          notas: notas.trim() || null,
+        });
+      } else {
+        await crearDevolucion({
+          cliente_id: cliente.id,
+          presentacion_id: modoManual ? Number(presSeleccionada) : selected.presentacion_id,
+          venta_id: selected?.venta_id || null,
+          cantidad: qty,
+          fecha: today(),
+          notas: notas.trim() || null,
+        });
+      }
       onSaved();
       onClose();
     } catch (err) {
@@ -210,10 +226,16 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                       Este cliente tiene {cliente.bidones_prestados} bidones prestados (carga inicial). Selecciona producto y cantidad para devolver.
                     </div>
                     {!modoManual ? (
-                      <button type="button" onClick={() => setModoManual(true)}
-                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition">
-                        Registrar devolución manual
-                      </button>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { setModoManual(true); setModoPerdido(false); }}
+                          className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition">
+                          Devolver vacio
+                        </button>
+                        <button type="button" onClick={() => { setModoPerdido(true); setModoManual(false); }}
+                          className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+                          Bidon perdido
+                        </button>
+                      </div>
                     ) : (
                       <div className="space-y-3">
                         <div>
@@ -230,6 +252,38 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                           <label className="block text-xs font-medium text-slate-600 mb-1">Cantidad a devolver</label>
                           <input type="number" min="1" max={cliente.bidones_prestados} value={cantidad}
                             onChange={e => setCantidad(e.target.value)} className={inputCls} placeholder="1" />
+                        </div>
+                      </div>
+                    )}
+                    {modoPerdido && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Producto</label>
+                          <select value={presSeleccionada} onChange={e => { setPresSeleccionada(e.target.value); setError(''); }}
+                            className={inputCls}>
+                            <option value="">Seleccionar producto...</option>
+                            {presentaciones.map(p => (
+                              <option key={p.id} value={p.id}>{p.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Cantidad de bidones perdidos</label>
+                          <input type="number" min="1" max={cliente.bidones_prestados} value={cantidad}
+                            onChange={e => setCantidad(e.target.value)} className={inputCls} placeholder="1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Monto a cobrar (S/)</label>
+                          <input type="number" min="0.01" step="0.01" value={montoPerdido}
+                            onChange={e => setMontoPerdido(e.target.value)} className={inputCls} placeholder="0.00" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Metodo de pago</label>
+                          <select value={metodoPerdido} onChange={e => setMetodoPerdido(e.target.value)} className={inputCls}>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="yape">Yape</option>
+                          </select>
                         </div>
                       </div>
                     )}
@@ -314,7 +368,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition text-slate-600">Cancelar</button>
-            <button type="submit" disabled={loading || (!selected && !modoManual) || (modoManual && (!presSeleccionada || !cantidad))}
+            <button type="submit" disabled={loading || (!selected && !modoManual && !modoPerdido) || ((modoManual || modoPerdido) && (!presSeleccionada || !cantidad))}
               className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition">
               {loading ? 'Registrando...' : 'Registrar devolución'}
             </button>

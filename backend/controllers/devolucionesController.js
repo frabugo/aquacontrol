@@ -562,3 +562,75 @@ exports.anular = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+/* == POST /api/devoluciones/bidon-perdido == */
+exports.bidonPerdido = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { cliente_id, presentacion_id, cantidad, monto, metodo_pago, notas } = req.body;
+
+    if (!cliente_id) { conn.release(); return res.status(400).json({ error: 'cliente_id es requerido' }); }
+    if (!presentacion_id) { conn.release(); return res.status(400).json({ error: 'presentacion_id es requerido' }); }
+    if (!cantidad || Number(cantidad) <= 0) { conn.release(); return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' }); }
+    if (!monto || Number(monto) <= 0) { conn.release(); return res.status(400).json({ error: 'El monto debe ser mayor a 0' }); }
+
+    const qty = Number(cantidad);
+    const montoNum = Number(monto);
+
+    await conn.beginTransaction();
+
+    // Validar cliente y bidones_prestados
+    const [[cliente]] = await conn.query(
+      'SELECT bidones_prestados, nombre FROM clientes WHERE id = ? FOR UPDATE', [cliente_id]
+    );
+    if (!cliente) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Cliente no encontrado' }); }
+    if (Number(cliente.bidones_prestados) < qty) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ error: `El cliente solo tiene ${cliente.bidones_prestados} bidones prestados` });
+    }
+
+    // Validar caja abierta
+    const [[caja]] = await conn.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (!caja) { await conn.rollback(); conn.release(); return res.status(400).json({ error: 'No hay caja abierta' }); }
+
+    // Buscar categoria "Cobro bidón perdido"
+    const [[cat]] = await conn.query(
+      "SELECT id FROM categorias_caja WHERE nombre = 'Cobro bidón perdido' AND tipo = 'ingreso' LIMIT 1"
+    );
+
+    // 1. Restar bidones_prestados del cliente
+    await conn.query(
+      'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
+      [qty, cliente_id]
+    );
+
+    // 2. Registrar ingreso en caja
+    await conn.query(
+      `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, registrado_por, categoria_id)
+       VALUES (?, 'ingreso', ?, ?, ?, ?, ?, ?)`,
+      [caja.id, metodo_pago || 'efectivo', montoNum,
+       `Bidón perdido x${qty} - ${cliente.nombre}${notas ? ' - ' + notas : ''}`,
+       cliente_id, req.user.id, cat?.id || null]
+    );
+
+    // 3. Registrar en devoluciones como referencia (origen 'manual', notas indica que fue cobro)
+    await conn.query(
+      `INSERT INTO devoluciones (cliente_id, presentacion_id, cantidad, origen, fecha, notas, registrado_por)
+       VALUES (?, ?, ?, 'manual', CURDATE(), ?, ?)`,
+      [cliente_id, presentacion_id, qty,
+       `Bidón perdido - cobrado S/${montoNum.toFixed(2)}${notas ? ' - ' + notas : ''}`,
+       req.user.id]
+    );
+
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
+    res.status(500).json({ error: err.message });
+  }
+};
