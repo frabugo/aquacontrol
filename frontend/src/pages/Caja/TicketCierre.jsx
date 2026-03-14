@@ -77,7 +77,7 @@ export default function TicketCierre({ caja, saldos, onClose }) {
             </div>
             <div className="flex justify-between">
               <span>Cierre:</span>
-              <span className="font-medium">{formatFechaHora(caja.hora_cierre)}</span>
+              <span className="font-medium">{formatFechaHora(caja.cerrada_en)}</span>
             </div>
             <div className="flex justify-between">
               <span>Abierta por:</span>
