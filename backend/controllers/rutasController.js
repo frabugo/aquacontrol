@@ -882,9 +882,9 @@ exports.registrarGasto = async (req, res) => {
       await conn.query(
         `UPDATE caja_ruta SET
            total_cobrado = total_cobrado + ?,
-           neto_a_entregar = (total_cobrado + ?) - total_gastos
+           neto_a_entregar = total_cobrado - total_gastos
          WHERE id = ?`,
-        [montoNum, montoNum, caja.id]
+        [montoNum, caja.id]
       );
     }
 
