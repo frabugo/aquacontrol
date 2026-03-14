@@ -251,7 +251,7 @@ export default function GuiaRemisionModal({ venta, comprobante, onClose, onEmiti
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Peso total (KG)</label>
-                  <input type="number" step="0.01" min="0" value={form.peso_total} onChange={set('peso_total')}
+                  <input type="number" step="0.000001" min="0" value={form.peso_total} onChange={set('peso_total')}
                     placeholder="1" className={inputCls} />
                 </div>
                 <div>

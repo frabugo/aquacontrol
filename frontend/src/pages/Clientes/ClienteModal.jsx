@@ -191,7 +191,7 @@ export default function ClienteModal({ isOpen, onClose, cliente, onSaved }) {
                     onChange={set('longitud')} placeholder="-77.0427934" />
                 </Field>
                 <Field label="Crédito máximo (S/)" hint="0 = sin límite de crédito">
-                  <input type="number" min="0" step="0.01" className={inputCls}
+                  <input type="number" min="0" step="0.000001" className={inputCls}
                     value={form.credito_maximo} onChange={set('credito_maximo')} placeholder="0.00" />
                 </Field>
               </div>
@@ -202,15 +202,15 @@ export default function ClienteModal({ isOpen, onClose, cliente, onSaved }) {
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Precios (S/)</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Field label="Recarga con devolución" hint="Cliente devuelve bidón vacío">
-                  <input type="number" min="0" step="0.01" className={inputCls}
+                  <input type="number" min="0" step="0.000001" className={inputCls}
                     value={form.precio_recarga_con_bidon} onChange={set('precio_recarga_con_bidon')} placeholder="0.00" />
                 </Field>
                 <Field label="Recarga en préstamo" hint="Cliente queda con el bidón">
-                  <input type="number" min="0" step="0.01" className={inputCls}
+                  <input type="number" min="0" step="0.000001" className={inputCls}
                     value={form.precio_recarga_sin_bidon} onChange={set('precio_recarga_sin_bidon')} placeholder="0.00" />
                 </Field>
                 <Field label="Bidón lleno (compra)" hint="Compra bidón + agua">
-                  <input type="number" min="0" step="0.01" className={inputCls}
+                  <input type="number" min="0" step="0.000001" className={inputCls}
                     value={form.precio_bidon_lleno} onChange={set('precio_bidon_lleno')} placeholder="0.00" />
                 </Field>
               </div>

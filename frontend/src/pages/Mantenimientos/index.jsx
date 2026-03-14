@@ -213,7 +213,7 @@ function MantModal({ isOpen, onClose, onSaved, mant, vehiculos, allProgs }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Costo S/.</label>
-              <input type="number" step="0.01" min="0" className={inputCls} value={form.costo} onChange={e => upd('costo', e.target.value)} />
+              <input type="number" step="0.000001" min="0" className={inputCls} value={form.costo} onChange={e => upd('costo', e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Proveedor</label>
@@ -682,7 +682,7 @@ export default function Mantenimientos() {
                       <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TIPO_COLORS[m.tipo]}`}>{TIPOS[m.tipo]}</span></td>
                       <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate">{m.descripcion}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{m.kilometraje ? m.kilometraje.toLocaleString() : '—'}</td>
-                      <td className="px-4 py-3 text-right">{Number(m.costo) > 0 ? `S/. ${Number(m.costo).toFixed(2)}` : '—'}</td>
+                      <td className="px-4 py-3 text-right">{Number(m.costo) > 0 ? `S/. ${Number(m.costo).toFixed(6)}` : '—'}</td>
                       <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ESTADO_COLORS[m.estado]}`}>{m.estado}</span></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">

@@ -295,7 +295,7 @@ function NuevoPedidoModal({ isOpen, onClose, onSaved }) {
                       </label>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-slate-400">S/</span>
-                        <input type="number" inputMode="decimal" min="0" step="0.50"
+                        <input type="number" inputMode="decimal" min="0" step="0.000001"
                           className={`${inputCls} flex-1 text-right text-lg font-bold ${
                             l.precio_origen === 'especial' ? 'border-amber-300 bg-amber-50' : ''
                           }`}
@@ -303,7 +303,7 @@ function NuevoPedidoModal({ isOpen, onClose, onSaved }) {
                           onChange={e => updateLinea(i, 'precio_unitario', parseFloat(e.target.value) || 0)} />
                       </div>
                       <p className="text-right text-xs text-slate-400 mt-1 font-semibold">
-                        Subtotal: S/ {((l.precio_unitario || 0) * (l.cantidad || 0)).toFixed(2)}
+                        Subtotal: S/ {((l.precio_unitario || 0) * (l.cantidad || 0)).toFixed(6)}
                       </p>
                     </div>
 
@@ -320,7 +320,7 @@ function NuevoPedidoModal({ isOpen, onClose, onSaved }) {
             )}
             {lineas.length > 0 && (
               <div className="mt-3 text-right text-base font-bold text-slate-800">
-                Total: S/ {totalPedido.toFixed(2)}
+                Total: S/ {totalPedido.toFixed(6)}
               </div>
             )}
           </div>

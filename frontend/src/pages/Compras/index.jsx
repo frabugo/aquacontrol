@@ -193,11 +193,11 @@ function NuevaCompraModal({ isOpen, onClose, onSaved }) {
                       </div>
                       <div>
                         <label className="block text-xs text-slate-500 mb-0.5">Cantidad</label>
-                        <input type="number" min="0.01" step="0.01" className={inputCls} value={it.cantidad} onChange={e => updateItem(it.id, { cantidad: e.target.value })} placeholder="0" required />
+                        <input type="number" min="0.01" step="0.000001" className={inputCls} value={it.cantidad} onChange={e => updateItem(it.id, { cantidad: e.target.value })} placeholder="0" required />
                       </div>
                       <div>
                         <label className="block text-xs text-slate-500 mb-0.5">Precio unit. (S/)</label>
-                        <input type="number" min="0" step="0.01" className={inputCls} value={it.precio_unitario} onChange={e => updateItem(it.id, { precio_unitario: e.target.value })} placeholder="0.00" />
+                        <input type="number" min="0" step="0.000001" className={inputCls} value={it.precio_unitario} onChange={e => updateItem(it.id, { precio_unitario: e.target.value })} placeholder="0.00" />
                       </div>
                       <div className="flex items-end">
                         <div className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-right">
@@ -333,7 +333,7 @@ function PagarProveedorModal({ proveedor, onClose, onPaid, cajaAbierta }) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs text-slate-600 mb-1">Monto (S/) *</label>
-                  <input type="number" min="0.01" step="0.01" required className={inputCls}
+                  <input type="number" min="0.01" step="0.000001" required className={inputCls}
                     value={monto} onChange={e => setMonto(e.target.value)} placeholder="0.00" />
                 </div>
                 <div>

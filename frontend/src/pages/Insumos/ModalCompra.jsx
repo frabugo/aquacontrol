@@ -126,7 +126,7 @@ export default function ModalCompra({ isOpen, onClose, onSaved }) {
                   {preciosHist.slice(0, 10).map((ph, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <span className="text-slate-600">{ph.insumo_nombre ?? ph.presentacion_nombre ?? `Item #${ph.id}`}</span>
-                      <span className="tabular-nums text-slate-700 font-medium">S/ {Number(ph.precio_unitario ?? 0).toFixed(2)}</span>
+                      <span className="tabular-nums text-slate-700 font-medium">S/ {Number(ph.precio_unitario ?? 0).toFixed(6)}</span>
                     </div>
                   ))}
                 </div>
@@ -170,11 +170,11 @@ export default function ModalCompra({ isOpen, onClose, onSaved }) {
                       </div>
                       <div>
                         <label className="block text-xs text-slate-500 mb-0.5">Cantidad</label>
-                        <input type="number" min="0.01" step="0.01" className={inputCls} value={it.cantidad} onChange={e => updateItem(it.id, { cantidad: e.target.value })} placeholder="0" required />
+                        <input type="number" min="0.01" step="0.000001" className={inputCls} value={it.cantidad} onChange={e => updateItem(it.id, { cantidad: e.target.value })} placeholder="0" required />
                       </div>
                       <div>
                         <label className="block text-xs text-slate-500 mb-0.5">Precio unit. (S/)</label>
-                        <input type="number" min="0" step="0.01" className={inputCls} value={it.precio_unitario} onChange={e => updateItem(it.id, { precio_unitario: e.target.value })} placeholder="0.00" />
+                        <input type="number" min="0" step="0.000001" className={inputCls} value={it.precio_unitario} onChange={e => updateItem(it.id, { precio_unitario: e.target.value })} placeholder="0.00" />
                       </div>
                       <div className="flex items-end">
                         <div className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-right">

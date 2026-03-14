@@ -35,6 +35,7 @@ function today() {
 /* ── Componente principal ── */
 export default function Ventas() {
   const { metodos } = useMetodosPago();
+  const { cajaAbierta } = useCajaAbierta();
   const [ventas,   setVentas]   = useState([]);
   const [total,    setTotal]    = useState(0);
   const [pages,    setPages]    = useState(1);

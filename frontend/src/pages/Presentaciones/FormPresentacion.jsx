@@ -135,7 +135,7 @@ export default function FormPresentacion({ isOpen, onClose, presentacion, onSave
                     </select>
                   </Field>
                   <Field label="Precio base (S/)">
-                    <input type="number" min="0" step="0.01" className={inputCls}
+                    <input type="number" min="0" step="0.000001" className={inputCls}
                       value={form.precio_base} onChange={set('precio_base')} placeholder="0.00" />
                   </Field>
                   <Field label="Stock mínimo">

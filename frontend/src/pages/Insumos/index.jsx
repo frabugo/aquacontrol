@@ -6,7 +6,7 @@ import ModalCompra from './ModalCompra';
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
 
-function formatN(n) { return Number(n ?? 0).toFixed(2); }
+function formatN(n) { return Number(n ?? 0).toFixed(6); }
 
 /* ── Modal Crear / Editar Insumo ── */
 function InsumoModal({ isOpen, onClose, onSaved, initial }) {
@@ -66,11 +66,11 @@ function InsumoModal({ isOpen, onClose, onSaved, initial }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Stock mínimo</label>
-              <input type="number" min="0" step="0.01" className={inputCls} value={form.stock_minimo} onChange={e => setForm(f => ({ ...f, stock_minimo: e.target.value }))} placeholder="0" />
+              <input type="number" min="0" step="0.000001" className={inputCls} value={form.stock_minimo} onChange={e => setForm(f => ({ ...f, stock_minimo: e.target.value }))} placeholder="0" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Precio unit. (S/)</label>
-              <input type="number" min="0" step="0.01" className={inputCls} value={form.precio_unitario} onChange={e => setForm(f => ({ ...f, precio_unitario: e.target.value }))} placeholder="0.00" />
+              <input type="number" min="0" step="0.000001" className={inputCls} value={form.precio_unitario} onChange={e => setForm(f => ({ ...f, precio_unitario: e.target.value }))} placeholder="0.00" />
             </div>
           </div>
           <div className="flex gap-3 pt-1">
@@ -144,7 +144,7 @@ function AjusteModal({ isOpen, onClose, onSaved, insumo }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Cantidad ({insumo.unidad})</label>
-            <input type="number" min="0.01" step="0.01" required className={inputCls} value={cantidad} onChange={e => setCantidad(e.target.value)} autoFocus placeholder="0" />
+            <input type="number" min="0.01" step="0.000001" required className={inputCls} value={cantidad} onChange={e => setCantidad(e.target.value)} autoFocus placeholder="0" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Motivo (opcional)</label>

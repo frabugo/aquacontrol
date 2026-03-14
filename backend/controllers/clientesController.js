@@ -6,7 +6,7 @@ const XLSX = require('xlsx');
 
 /* ── Campos calculados reutilizables ── */
 const CALC_FIELDS = `
-  c.*,
+  c.*, c.ruc_dni AS dni,
   CASE
     WHEN c.saldo_dinero > c.credito_maximo AND c.credito_maximo > 0 THEN 'sobre_limite'
     WHEN c.saldo_dinero > 0 OR c.bidones_prestados > 0             THEN 'con_deuda'
@@ -74,7 +74,7 @@ exports.getOne = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const {
-      nombre, ruc_dni, telefono, direccion, latitud, longitud,
+      nombre, ruc_dni: _ruc_dni, dni, telefono, direccion, latitud, longitud,
       tipo                   = 'menudeo',
       precio_recarga_con_bidon = 0,
       precio_recarga_sin_bidon = 0,
@@ -83,6 +83,7 @@ exports.create = async (req, res) => {
       notas, ubigeo,
     } = req.body;
 
+    const ruc_dni = _ruc_dni || dni;
     if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es requerido' });
 
     const [result] = await db.query(
@@ -125,7 +126,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const {
-      nombre, ruc_dni, telefono, direccion, latitud, longitud,
+      nombre, ruc_dni: _ruc_dni2, dni: dni2, telefono, direccion, latitud, longitud,
       tipo                   = 'menudeo',
       precio_recarga_con_bidon = 0,
       precio_recarga_sin_bidon = 0,

@@ -605,7 +605,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                         <div>
                           <span className="text-slate-400">Deuda actual</span>
                           <p className={`font-bold ${Number(cliente.saldo_dinero) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                            S/ {Number(cliente.saldo_dinero || 0).toFixed(2)}
+                            S/ {Number(cliente.saldo_dinero || 0).toFixed(6)}
                           </p>
                         </div>
                         <div>
@@ -774,7 +774,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                                               {p.es_retornable && (
                                                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">Retornable</span>
                                               )}
-                                              <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(2)}</span>
+                                              <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(6)}</span>
                                             </div>
                                           </button>
                                         </li>
@@ -844,7 +844,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                                 </label>
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-sm font-semibold text-slate-400">S/</span>
-                                  <input type="number" inputMode="decimal" min="0" step="0.50"
+                                  <input type="number" inputMode="decimal" min="0" step="0.000001"
                                     className={`${inputCls} flex-1 text-right text-lg font-bold ${
                                       l.precio_origen === 'especial' ? 'border-amber-300 bg-amber-50' : ''
                                     }`}
@@ -856,7 +856,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                               <div className="flex items-end">
                                 <div className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-right">
                                   <div className="text-xs text-slate-400">Subtotal</div>
-                                  <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
+                                  <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(6)}</div>
                                 </div>
                               </div>
                             </div>
@@ -878,7 +878,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-blue-600">Total estimado</p>
-                        <p className="text-2xl font-bold text-blue-800">S/ {totalCalc.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-blue-800">S/ {totalCalc.toFixed(6)}</p>
                       </div>
                     </div>
                   </div>

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getIndicadores } from '../../services/dashboardService';
 
 /* ── Helpers ── */
-const hoy = () => new Date().toISOString().slice(0, 10);
+const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
 function saludo() {
   const h = new Date().getHours();
@@ -25,11 +25,11 @@ function formatSoles(n) {
 
 function hace7dias() {
   const d = new Date(); d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function inicioMes() {
   const d = new Date(); d.setDate(1);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 /* ── Color map for cards ── */

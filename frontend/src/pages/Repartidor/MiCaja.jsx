@@ -7,7 +7,7 @@ const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 te
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
 
 function formatS(n) {
-  return `S/ ${Number(n || 0).toFixed(2)}`;
+  return `S/ ${Number(n || 0).toFixed(6)}`;
 }
 function formatHora(dt) {
   if (!dt) return '';
@@ -209,7 +209,7 @@ export default function MiCaja() {
                 </div>
                 <div>
                   <label className="block text-xs text-slate-500 mb-0.5">Monto (S/)</label>
-                  <input type="number" min="0.01" step="0.01" className={inputCls} value={montoGasto}
+                  <input type="number" min="0.01" step="0.000001" className={inputCls} value={montoGasto}
                     onChange={e => setMontoGasto(e.target.value)} placeholder="0.00" required />
                 </div>
               </div>
@@ -277,7 +277,7 @@ export default function MiCaja() {
                   El cajero debe confirmar la recepcion.
                 </p>
                 <div className="mt-3 px-4 py-2.5 bg-amber-100 rounded-lg text-sm font-semibold text-amber-800">
-                  Neto a entregar: S/ {Number(ruta.neto_a_entregar || 0).toFixed(2)}
+                  Neto a entregar: S/ {Number(ruta.neto_a_entregar || 0).toFixed(6)}
                 </div>
               </>
             )}

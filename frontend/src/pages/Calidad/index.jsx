@@ -67,7 +67,7 @@ function ControlModal({ isOpen, onClose, onSaved, control }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">pH</label>
-              <input type="number" step="0.01" className={inputCls} value={form.ph} onChange={e => upd('ph', e.target.value)} />
+              <input type="number" step="0.000001" className={inputCls} value={form.ph} onChange={e => upd('ph', e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Cloro (mg/L)</label>
@@ -81,7 +81,7 @@ function ControlModal({ isOpen, onClose, onSaved, control }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Turbidez (NTU)</label>
-              <input type="number" step="0.01" className={inputCls} value={form.turbidez} onChange={e => upd('turbidez', e.target.value)} />
+              <input type="number" step="0.000001" className={inputCls} value={form.turbidez} onChange={e => upd('turbidez', e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Temp (C)</label>

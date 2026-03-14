@@ -86,7 +86,7 @@ export default function AbrirCajaModal({ isOpen, onClose, onOpened }) {
                 {conArrastre.map(a => (
                   <div key={a.nombre} className="flex justify-between text-sm">
                     <span className="text-blue-600">{a.etiqueta}</span>
-                    <span className="font-semibold text-blue-800">S/ {Number(a.saldo_ini).toFixed(2)}</span>
+                    <span className="font-semibold text-blue-800">S/ {Number(a.saldo_ini).toFixed(6)}</span>
                   </div>
                 ))}
               </div>
@@ -99,7 +99,7 @@ export default function AbrirCajaModal({ isOpen, onClose, onOpened }) {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">S/</span>
               <input
-                type="number" min="0" step="0.01"
+                type="number" min="0" step="0.000001"
                 className={`${inputCls} pl-8`}
                 value={saldo}
                 onChange={e => setSaldo(e.target.value)}

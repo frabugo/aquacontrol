@@ -101,7 +101,7 @@ function PagarModal({ cliente, onClose, onPaid }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs text-slate-600 mb-1">Monto (S/) *</label>
-                <input type="number" min="0.01" step="0.01" required className={inputCls}
+                <input type="number" min="0.01" step="0.000001" required className={inputCls}
                   value={monto} onChange={e => setMonto(e.target.value)} placeholder="0.00" />
               </div>
               <div>

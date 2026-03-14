@@ -110,7 +110,7 @@ export default function Facturacion() {
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Porcentaje IGV (%)</label>
-            <input type="number" step="0.01" min="0" max="100"
+            <input type="number" step="0.000001" min="0" max="100"
               className={`${inputCls} max-w-[120px]`}
               value={form.facturacion_igv} onChange={set('facturacion_igv')}
               placeholder="18" />
