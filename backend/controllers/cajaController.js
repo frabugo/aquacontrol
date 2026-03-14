@@ -729,6 +729,17 @@ exports.resumenBidones = async (req, res) => {
     const productos = ventasTipo.find(r => r.tipo_linea === 'producto');
     const totalVacios = ventasTipo.reduce((s, r) => s + Number(r.vacios || 0), 0);
 
+    // Prestamos automaticos: recargas retornables donde no devolvieron todos los vacios
+    const [[autoLoan]] = await db.query(
+      `SELECT COALESCE(SUM(vd.cantidad - vd.vacios_recibidos), 0) AS prestamos_auto
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE DATE(v.fecha_hora) = ? AND v.estado != 'cancelada'
+           AND vd.tipo_linea = 'recarga' AND p.es_retornable = 1
+           AND vd.cantidad > vd.vacios_recibidos`, [fecha]
+    );
+
     // Devoluciones del dia (bidones que debian)
     const [[devs]] = await db.query(
       `SELECT COALESCE(SUM(cantidad), 0) AS devueltos
@@ -749,6 +760,7 @@ exports.resumenBidones = async (req, res) => {
       vendidos_recarga: Number(recargas?.cantidad || 0),
       vendidos_completo: Number(completos?.cantidad || 0),
       vendidos_prestamo: Number(prestamos?.cantidad || 0),
+      prestamos_auto: Number(autoLoan.prestamos_auto || 0),
       vendidos_producto: Number(productos?.cantidad || 0),
       vacios_recibidos_ventas: totalVacios,
       devueltos_deuda: Number(devs.devueltos),

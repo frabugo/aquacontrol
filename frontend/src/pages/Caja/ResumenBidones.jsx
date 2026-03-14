@@ -57,6 +57,7 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
                   {data.vendidos_recarga > 0 && <Item label="Recargas" value={data.vendidos_recarga} color="amber" icon="-" />}
                   {data.vendidos_completo > 0 && <Item label="Bidones completos" value={data.vendidos_completo} color="amber" icon="-" />}
                   {data.vendidos_prestamo > 0 && <Item label="Prestamos" value={data.vendidos_prestamo} color="red" icon="-" />}
+                  {data.prestamos_auto > 0 && <Item label="Prestamos auto (vacios no devueltos)" value={data.prestamos_auto} color="red" icon="" />}
                   {data.vendidos_producto > 0 && <Item label="Productos" value={data.vendidos_producto} color="slate" icon="-" />}
                   {(data.vendidos_recarga + data.vendidos_completo + data.vendidos_prestamo + data.vendidos_producto) === 0 && (
                     <p className="text-sm text-slate-400 col-span-2">Sin ventas de bidones hoy</p>
