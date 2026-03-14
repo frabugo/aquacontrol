@@ -384,7 +384,7 @@ exports.create = async (req, res) => {
       const descL          = Number(l.descuento_linea) || 0;
       const subtotalLinea  = (precioU - descL) * cantidad;
 
-      const garantiaLinea = (l.tipo_linea === 'prestamo') ? (Number(l.garantia) || 0) : 0;
+      const garantiaLinea = (l.tipo_linea === 'prestamo' || (l.tipo_linea === 'recarga' && Number(l.garantia) > 0)) ? (Number(l.garantia) || 0) : 0;
 
       await conn.query(
         `INSERT INTO venta_detalle

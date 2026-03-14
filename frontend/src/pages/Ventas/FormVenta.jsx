@@ -475,7 +475,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                           <div className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-right">
                             <div className="text-xs text-slate-400">Subtotal</div>
                             <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
-                            {l.tipo_linea === 'prestamo' && (
+                            {(l.tipo_linea === 'prestamo' || (l.tipo_linea === 'recarga' && Number(l.cantidad) > Number(l.vacios_recibidos || 0))) && (
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="text-xs text-amber-600">Garantia S/</span>
                                 <input type="number" inputMode="decimal" min="0" step="0.01"
