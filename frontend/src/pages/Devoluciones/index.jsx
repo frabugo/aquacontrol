@@ -4,6 +4,7 @@ import {
   listarDevoluciones, crearDevolucion, anularDevolucion,
   clientesPrestamos, detallePrestamos, pendientesPorVenta,
   bidonPerdido,
+  devolverGarantia,
 } from '../../services/devolucionesService';
 import { listarClientes } from '../../services/clientesService';
 import { listarPresentaciones } from '../../services/presentacionesService';
@@ -45,6 +46,9 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   const [notas, setNotas]           = useState('');
   const [modoManual, setModoManual] = useState(false);
   const [modoPerdido, setModoPerdido] = useState(false);
+  const [modoGarantia, setModoGarantia] = useState(false);
+  const [montoGarantia, setMontoGarantia] = useState('');
+  const [metodoGarantia, setMetodoGarantia] = useState('efectivo');
   const [montoPerdido, setMontoPerdido] = useState('');
   const [metodoPerdido, setMetodoPerdido] = useState('efectivo');
   const [presentaciones, setPresentaciones] = useState([]);
@@ -57,7 +61,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
     if (isOpen) {
       setClienteInput(''); setClientes([]); setCliente(null); setShowSugg(false);
       setPendientes([]); setSelected(null); setCantidad(''); setNotas(''); setError('');
-      setModoManual(false); setModoPerdido(false); setPresSeleccionada(''); setMontoPerdido(''); setMetodoPerdido('efectivo');
+      setModoManual(false); setModoPerdido(false); setModoGarantia(false); setMontoGarantia(''); setMetodoGarantia('efectivo'); setPresSeleccionada(''); setMontoPerdido(''); setMetodoPerdido('efectivo');
     }
   }, [isOpen]);
 
@@ -113,6 +117,25 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!cliente) return setError('Selecciona un cliente');
+    if (modoGarantia) {
+      if (!montoGarantia || Number(montoGarantia) <= 0) return setError('El monto es requerido');
+      if (Number(montoGarantia) > Number(cliente.saldo_garantia)) return setError('El monto excede la garantía disponible');
+      setError(''); setLoading(true);
+      try {
+        await devolverGarantia({
+          cliente_id: cliente.id,
+          monto: Number(montoGarantia),
+          metodo_pago: metodoGarantia,
+          notas: notas.trim() || null,
+        });
+        onSaved();
+        onClose();
+      } catch (err) {
+        setError(err.response?.data?.error || 'Error al devolver garantía');
+      }
+      setLoading(false);
+      return;
+    }
     if (!selected && !modoManual && !modoPerdido) return setError('Selecciona una venta con préstamo');
     if ((modoManual || modoPerdido) && !presSeleccionada) return setError('Selecciona un producto');
     const qty = Number(cantidad);
@@ -226,15 +249,21 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                       Este cliente tiene {cliente.bidones_prestados} bidones prestados (carga inicial). Selecciona producto y cantidad para devolver.
                     </div>
                     {!modoManual ? (
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => { setModoManual(true); setModoPerdido(false); }}
-                          className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition">
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => { setModoManual(true); setModoPerdido(false); setModoGarantia(false); }}
+                          className="flex-1 px-3 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition">
                           Devolver vacio
                         </button>
-                        <button type="button" onClick={() => { setModoPerdido(true); setModoManual(false); }}
-                          className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+                        <button type="button" onClick={() => { setModoPerdido(true); setModoManual(false); setModoGarantia(false); }}
+                          className="flex-1 px-3 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
                           Bidon perdido
                         </button>
+                        {Number(cliente.saldo_garantia) > 0 && (
+                          <button type="button" onClick={() => { setModoGarantia(true); setModoManual(false); setModoPerdido(false); }}
+                            className="flex-1 px-3 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+                            Devolver garantia (S/{Number(cliente.saldo_garantia).toFixed(2)})
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -280,6 +309,23 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">Metodo de pago</label>
                           <select value={metodoPerdido} onChange={e => setMetodoPerdido(e.target.value)} className={inputCls}>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="yape">Yape</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                    {modoGarantia && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Monto a devolver (S/) - Garantia disponible: S/{Number(cliente.saldo_garantia).toFixed(2)}</label>
+                          <input type="number" min="0.01" step="0.01" max={Number(cliente.saldo_garantia)} value={montoGarantia}
+                            onChange={e => setMontoGarantia(e.target.value)} className={inputCls} placeholder="0.00" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Metodo de pago</label>
+                          <select value={metodoGarantia} onChange={e => setMetodoGarantia(e.target.value)} className={inputCls}>
                             <option value="efectivo">Efectivo</option>
                             <option value="transferencia">Transferencia</option>
                             <option value="yape">Yape</option>
@@ -368,7 +414,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition text-slate-600">Cancelar</button>
-            <button type="submit" disabled={loading || (!selected && !modoManual && !modoPerdido) || ((modoManual || modoPerdido) && (!presSeleccionada || !cantidad))}
+            <button type="submit" disabled={loading || (!selected && !modoManual && !modoPerdido && !modoGarantia) || ((modoManual || modoPerdido) && (!presSeleccionada || !cantidad)) || (modoGarantia && !montoGarantia)}
               className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition">
               {loading ? 'Registrando...' : 'Registrar devolución'}
             </button>

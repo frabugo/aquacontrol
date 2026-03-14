@@ -195,36 +195,7 @@ exports.create = async (req, res) => {
       }
     }
 
-    // 2. Restar bidones_prestados del cliente y devolver garantía si aplica
-    // Buscar si hay garantía pendiente de este cliente (proporcional)
-    const [[cliGar]] = await conn.query(
-      'SELECT saldo_garantia, bidones_prestados, nombre FROM clientes WHERE id = ? FOR UPDATE', [cliente_id]
-    );
-    const garantiaPorBidon = (cliGar && Number(cliGar.bidones_prestados) > 0 && Number(cliGar.saldo_garantia) > 0)
-      ? Number(cliGar.saldo_garantia) / Number(cliGar.bidones_prestados) : 0;
-    const garantiaDevolver = garantiaPorBidon > 0 ? Math.round(garantiaPorBidon * qty * 100) / 100 : 0;
-
-    if (garantiaDevolver > 0) {
-      await conn.query(
-        'UPDATE clientes SET saldo_garantia = GREATEST(0, saldo_garantia - ?) WHERE id = ?',
-        [garantiaDevolver, cliente_id]
-      );
-      const [[cajaAb]] = await conn.query(
-        "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
-      );
-      if (cajaAb) {
-        const { getCategoriaId } = require('../helpers/categoriaCaja');
-        const catDev = await getCategoriaId('Devolución garantía', conn);
-        await conn.query(
-          `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, registrado_por, categoria_id)
-           VALUES (?, 'egreso', 'efectivo', ?, ?, ?, ?, ?)`,
-          [cajaAb.id, garantiaDevolver,
-           `Devolución garantía x${qty} bidón(es) - ${cliGar?.nombre || 'Cliente'}`,
-           cliente_id, req.user.id, catDev]
-        );
-      }
-    }
-
+    // 2. Restar bidones_prestados del cliente
     await conn.query(
       'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
       [qty, cliente_id]
@@ -752,6 +723,64 @@ exports.bidonPerdidoRuta = async (req, res) => {
       [cliente_id, presentacion_id, qty, ruta_id,
        `Bid\u00f3n perdido - cobrado S/${montoNum.toFixed(2)}${notas ? ' - ' + notas : ''}`,
        req.user.id]
+    );
+
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* == POST /api/devoluciones/devolver-garantia == */
+exports.devolverGarantia = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { cliente_id, monto, metodo_pago, notas } = req.body;
+
+    if (!cliente_id) { conn.release(); return res.status(400).json({ error: 'cliente_id es requerido' }); }
+    if (!monto || Number(monto) <= 0) { conn.release(); return res.status(400).json({ error: 'El monto debe ser mayor a 0' }); }
+
+    const montoNum = Number(monto);
+
+    await conn.beginTransaction();
+
+    const [[cliente]] = await conn.query(
+      'SELECT saldo_garantia, nombre FROM clientes WHERE id = ? FOR UPDATE', [cliente_id]
+    );
+    if (!cliente) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Cliente no encontrado' }); }
+    if (Number(cliente.saldo_garantia) <= 0) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ error: 'El cliente no tiene garant\u00eda pendiente' });
+    }
+    if (montoNum > Number(cliente.saldo_garantia)) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ error: `La garant\u00eda del cliente es S/${Number(cliente.saldo_garantia).toFixed(2)}. No puedes devolver m\u00e1s.` });
+    }
+
+    const [[caja]] = await conn.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (!caja) { await conn.rollback(); conn.release(); return res.status(400).json({ error: 'No hay caja abierta' }); }
+
+    // Restar saldo_garantia
+    await conn.query(
+      'UPDATE clientes SET saldo_garantia = GREATEST(0, saldo_garantia - ?) WHERE id = ?',
+      [montoNum, cliente_id]
+    );
+
+    // Registrar egreso en caja
+    const { getCategoriaId } = require('../helpers/categoriaCaja');
+    const catDev = await getCategoriaId('Devoluci\u00f3n garant\u00eda', conn);
+    await conn.query(
+      `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, registrado_por, categoria_id)
+       VALUES (?, 'egreso', ?, ?, ?, ?, ?, ?)`,
+      [caja.id, metodo_pago || 'efectivo', montoNum,
+       `Devoluci\u00f3n garant\u00eda S/${montoNum.toFixed(2)} - ${cliente.nombre}${notas ? ' - ' + notas : ''}`,
+       cliente_id, req.user.id, catDev]
     );
 
     await conn.commit();
