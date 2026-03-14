@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import { exportarVentas, exportarCaja, exportarProduccion, exportarDeudas, obtenerGraficos, obtenerEntregas } from '../../services/reportesService';
+import RentabilidadClientes from './RentabilidadClientes';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -83,6 +84,7 @@ const chartCardCls = 'bg-white rounded-xl border border-slate-200 shadow-sm p-5'
 
 export default function Reportes() {
   const [loading, setLoading] = useState({});
+  const [tabActiva, setTabActiva] = useState('graficos');
   const [filtros, setFiltros] = useState({
     ventas: { fecha_inicio: today(), fecha_fin: today() },
     caja: { fecha_inicio: today(), fecha_fin: today() },
@@ -155,6 +157,22 @@ export default function Reportes() {
           ))}
         </div>
 
+        {/* Tabs */}
+        <div className="flex bg-slate-100 rounded-xl p-1">
+          {[
+            { id: 'graficos', label: 'Graficos' },
+            { id: 'rentabilidad', label: 'Rentabilidad Clientes' },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setTabActiva(tab.id)}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+                tabActiva === tab.id ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}>{tab.label}</button>
+          ))}
+        </div>
+
+        {tabActiva === 'rentabilidad' && <RentabilidadClientes />}
+
+        {tabActiva === 'graficos' && <>
         {/* ── Charts grid ── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           {/* Ventas por dia - LineChart (full width) */}
@@ -292,6 +310,8 @@ export default function Reportes() {
             )}
           </div>
         </div>
+
+        </>}
 
         {/* ── Section separator ── */}
         <div>

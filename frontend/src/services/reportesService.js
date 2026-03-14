@@ -50,3 +50,5 @@ export const exportarComprobantes = (params) =>
 export function obtenerEntregas(params) {
   return api.get('/reportes/entregas', { params }).then(r => r.data);
 }
+
+export const obtenerRentabilidad = (params) => api.get('/reportes/rentabilidad-clientes', { params }).then(r => r.data);

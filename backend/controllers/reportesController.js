@@ -480,3 +480,70 @@ exports.exportComprobantes = async (req, res) => {
     res.status(500).json({ error: 'Error generando reporte de comprobantes' });
   }
 };
+
+
+/* == GET /api/reportes/rentabilidad-clientes == */
+exports.rentabilidadClientes = async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin, orden } = req.query;
+    const fi = fecha_inicio || new Date(Date.now() - 30*86400000).toISOString().slice(0, 10);
+    const ff = fecha_fin || new Date().toISOString().slice(0, 10);
+
+    const [rows] = await db.query(`
+      SELECT
+        c.id, c.nombre, c.tipo, c.telefono, c.ruc_dni AS dni,
+        c.saldo_dinero AS deuda_actual, c.bidones_prestados,
+        c.precio_recarga_con_bidon, c.precio_recarga_sin_bidon, c.precio_bidon_lleno,
+        COUNT(v.id) AS total_ventas,
+        COALESCE(SUM(v.total), 0) AS facturado,
+        COALESCE(SUM(CASE WHEN v.estado = 'pagada' THEN v.total ELSE 0 END), 0) AS cobrado,
+        MIN(v.fecha_hora) AS primera_venta,
+        MAX(v.fecha_hora) AS ultima_venta,
+        DATEDIFF(CURDATE(), MAX(v.fecha_hora)) AS dias_sin_comprar,
+        COALESCE((SELECT SUM(p.monto) FROM pagos_clientes p WHERE p.cliente_id = c.id AND p.estado = 'activo' AND DATE(p.fecha_hora) >= ? AND DATE(p.fecha_hora) <= ?), 0) AS abonos_periodo,
+        (SELECT COUNT(*) FROM ventas v2 WHERE v2.cliente_id = c.id AND v2.estado != 'cancelada') AS ventas_historico
+      FROM clientes c
+      LEFT JOIN ventas v ON v.cliente_id = c.id AND v.estado != 'cancelada'
+        AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?
+      WHERE c.activo = 1
+      GROUP BY c.id
+      ORDER BY facturado DESC`,
+      [fi, ff, fi, ff]
+    );
+
+    const data = rows.map(r => ({
+      ...r,
+      facturado: Number(r.facturado),
+      cobrado: Number(r.cobrado),
+      deuda_actual: Number(r.deuda_actual),
+      abonos_periodo: Number(r.abonos_periodo),
+      pendiente_cobro: Number(r.facturado) - Number(r.cobrado),
+      dias_sin_comprar: r.dias_sin_comprar != null ? Number(r.dias_sin_comprar) : null,
+      estado: !r.ultima_venta ? 'sin_compras'
+        : Number(r.dias_sin_comprar) <= 7 ? 'activo'
+        : Number(r.dias_sin_comprar) <= 30 ? 'regular'
+        : Number(r.dias_sin_comprar) <= 60 ? 'en_riesgo'
+        : 'perdido',
+    }));
+
+    // Totals
+    const totales = {
+      total_clientes: data.length,
+      con_compras: data.filter(d => d.total_ventas > 0).length,
+      facturado_total: data.reduce((s, d) => s + d.facturado, 0),
+      cobrado_total: data.reduce((s, d) => s + d.cobrado, 0),
+      deuda_total: data.reduce((s, d) => s + d.deuda_actual, 0),
+      bidones_prestados_total: data.reduce((s, d) => s + Number(d.bidones_prestados), 0),
+    };
+
+    // Sort
+    let sorted = data;
+    if (orden === 'deuda') sorted = [...data].sort((a, b) => b.deuda_actual - a.deuda_actual);
+    else if (orden === 'frecuencia') sorted = [...data].sort((a, b) => b.total_ventas - a.total_ventas);
+    else if (orden === 'inactivos') sorted = [...data].sort((a, b) => (b.dias_sin_comprar || 999) - (a.dias_sin_comprar || 999));
+
+    res.json({ data: sorted, totales });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
