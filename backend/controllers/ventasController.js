@@ -126,6 +126,21 @@ exports.getPrecioSugerido = async (req, res) => {
       if (especial) return res.json({ precio: Number(especial.precio), origen: 'especial' });
     }
 
+    // Check client-level prices (campos del cliente)
+    if (cliente_id) {
+      const [[cli]] = await db.query(
+        'SELECT precio_recarga_con_bidon, precio_recarga_sin_bidon, precio_bidon_lleno FROM clientes WHERE id = ?',
+        [cliente_id]
+      );
+      if (cli) {
+        let precioCliente = 0;
+        if (tipo_linea === 'recarga')     precioCliente = Number(cli.precio_recarga_con_bidon);
+        if (tipo_linea === 'prestamo')    precioCliente = Number(cli.precio_recarga_sin_bidon);
+        if (tipo_linea === 'compra_bidon') precioCliente = Number(cli.precio_bidon_lleno);
+        if (precioCliente > 0) return res.json({ precio: precioCliente, origen: 'cliente' });
+      }
+    }
+
     // Fallback to presentacion base price
     const [[pres]] = await db.query(
       'SELECT precio_base FROM presentaciones WHERE id = ?',
