@@ -689,7 +689,7 @@ exports.getRepartidores = async (req, res) => {
 /* == GET /api/caja/:id/resumen-bidones == */
 exports.resumenBidones = async (req, res) => {
   try {
-    const [[caja]] = await db.query('SELECT id, fecha FROM cajas WHERE id = ?', [req.params.id]);
+    const [[caja]] = await db.query('SELECT id, fecha, cerrada_en FROM cajas WHERE id = ?', [req.params.id]);
     if (!caja) return res.status(404).json({ error: 'Caja no encontrada' });
 
     const fecha = caja.fecha;
@@ -746,11 +746,44 @@ exports.resumenBidones = async (req, res) => {
          FROM devoluciones WHERE fecha = ? AND estado = 'activa'`, [fecha]
     );
 
-    // Stock actual
-    const [stock] = await db.query(
-      `SELECT nombre, stock_llenos, stock_vacios, stock_en_lavado
-         FROM presentaciones WHERE activo = 1 AND (stock_llenos > 0 OR stock_vacios > 0 OR stock_en_lavado > 0)`
-    );
+    // Stock al cierre de caja (o actual si está abierta)
+    let stock;
+    if (caja.cerrada_en) {
+      // Caja cerrada: calcular stock al momento del cierre
+      // Stock actual - movimientos posteriores al cierre + movimientos posteriores inversos
+      const [presentacionesActivas] = await db.query(
+        'SELECT id, nombre, stock_llenos, stock_vacios, stock_en_lavado FROM presentaciones WHERE activo = 1'
+      );
+      const cierreTs = caja.cerrada_en;
+      stock = [];
+      for (const p of presentacionesActivas) {
+        // Movimientos DESPUES del cierre que afectaron este producto
+        const [[post]] = await db.query(
+          `SELECT
+             COALESCE(SUM(CASE WHEN estado_destino = 'lleno' THEN cantidad ELSE 0 END), 0) AS add_llenos,
+             COALESCE(SUM(CASE WHEN estado_origen = 'lleno' OR (tipo = 'venta' AND estado_origen = 'lleno') THEN cantidad ELSE 0 END), 0) AS sub_llenos,
+             COALESCE(SUM(CASE WHEN estado_destino = 'vacio' THEN cantidad ELSE 0 END), 0) AS add_vacios,
+             COALESCE(SUM(CASE WHEN estado_origen = 'vacio' THEN cantidad ELSE 0 END), 0) AS sub_vacios,
+             COALESCE(SUM(CASE WHEN estado_destino = 'en_lavado' THEN cantidad ELSE 0 END), 0) AS add_lavado,
+             COALESCE(SUM(CASE WHEN estado_origen = 'en_lavado' THEN cantidad ELSE 0 END), 0) AS sub_lavado
+           FROM stock_movimientos WHERE presentacion_id = ? AND fecha_hora > ?`,
+          [p.id, cierreTs]
+        );
+        const llenos = Number(p.stock_llenos) - Number(post.add_llenos) + Number(post.sub_llenos);
+        const vacios = Number(p.stock_vacios) - Number(post.add_vacios) + Number(post.sub_vacios);
+        const lavado = Number(p.stock_en_lavado) - Number(post.add_lavado) + Number(post.sub_lavado);
+        if (llenos > 0 || vacios > 0 || lavado > 0) {
+          stock.push({ nombre: p.nombre, stock_llenos: llenos, stock_vacios: vacios, stock_en_lavado: lavado });
+        }
+      }
+    } else {
+      // Caja abierta: stock actual
+      const [rows] = await db.query(
+        `SELECT nombre, stock_llenos, stock_vacios, stock_en_lavado
+           FROM presentaciones WHERE activo = 1 AND (stock_llenos > 0 OR stock_vacios > 0 OR stock_en_lavado > 0)`
+      );
+      stock = rows;
+    }
 
     res.json({
       fecha,

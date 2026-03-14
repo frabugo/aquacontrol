@@ -54,10 +54,10 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ventas</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {data.vendidos_recarga > 0 && <Item label="Recargas" value={data.vendidos_recarga} color="amber" icon="-" />}
-                  {data.vendidos_completo > 0 && <Item label="Bidones completos" value={data.vendidos_completo} color="amber" icon="-" />}
-                  {data.vendidos_prestamo > 0 && <Item label="Prestamos" value={data.vendidos_prestamo} color="red" icon="-" />}
-                  {data.prestamos_auto > 0 && <Item label="Prestamos auto (vacios no devueltos)" value={data.prestamos_auto} color="red" icon="" />}
+                  {data.vendidos_recarga > 0 && <Item label="Recargas vendidas" value={data.vendidos_recarga} color="amber" icon="-" />}
+                  {data.vendidos_completo > 0 && <Item label="Bidones completos vendidos" value={data.vendidos_completo} color="amber" icon="-" />}
+                  {data.vendidos_prestamo > 0 && <Item label="Bidones prestados" value={data.vendidos_prestamo} color="red" icon="-" />}
+                  {data.prestamos_auto > 0 && <Item label="Vacios no devueltos (quedan como prestamo)" value={data.prestamos_auto} color="red" icon="" />}
                   {data.vendidos_producto > 0 && <Item label="Productos" value={data.vendidos_producto} color="slate" icon="-" />}
                   {(data.vendidos_recarga + data.vendidos_completo + data.vendidos_prestamo + data.vendidos_producto) === 0 && (
                     <p className="text-sm text-slate-400 col-span-2">Sin ventas de bidones hoy</p>
@@ -69,14 +69,14 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Devoluciones</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <Item label="Vacios recibidos (ventas)" value={data.vacios_recibidos_ventas} color="blue" icon="+" />
+                  <Item label="Vacios recogidos" value={data.vacios_recibidos_ventas} color="blue" icon="+" />
                   <Item label="Devueltos (deudas)" value={data.devueltos_deuda} color="green" icon="+" />
                 </div>
               </div>
 
-              {/* Stock actual */}
+              {/* Stock al cierre de caja */}
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stock actual</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stock al cierre de caja</p>
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50">
