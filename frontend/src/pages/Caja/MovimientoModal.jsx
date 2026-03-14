@@ -34,7 +34,7 @@ export default function MovimientoModal({ isOpen, onClose, onSaved }) {
       setTipo('ingreso'); setMetodo('efectivo');
       setMonto(''); setDescripcion(''); setError('');
       setCategoriaId('');
-      api.get('/config/categorias-caja').then(r => setCategorias(r.data || [])).catch(() => setCategorias([]));
+      api.get('/config/categorias-caja').then(r => setCategorias(Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [])).catch(() => setCategorias([]));
     }
   }, [isOpen]);
 

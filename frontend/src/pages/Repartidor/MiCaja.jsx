@@ -61,7 +61,7 @@ export default function MiCaja() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
-    api.get('/config/categorias-caja').then(r => setCategorias(r.data || [])).catch(() => []);
+    api.get('/config/categorias-caja').then(r => setCategorias(Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [])).catch(() => []);
   }, []);
 
   async function handleGasto(e) {
