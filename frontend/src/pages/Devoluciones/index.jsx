@@ -314,7 +314,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition text-slate-600">Cancelar</button>
-            <button type="submit" disabled={loading || !selected}
+            <button type="submit" disabled={loading || (!selected && !modoManual) || (modoManual && (!presSeleccionada || !cantidad))}
               className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg transition">
               {loading ? 'Registrando...' : 'Registrar devolución'}
             </button>
