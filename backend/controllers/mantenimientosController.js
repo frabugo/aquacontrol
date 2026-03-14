@@ -155,7 +155,7 @@ exports.create = async (req, res) => {
       const placa = veh ? veh.placa : vehiculo_id;
 
       const { getCategoriaId } = require('../helpers/categoriaCaja');
-      const catGasto = await getCategoriaId('Gasto operativo', conn);
+      const catGasto = await getCategoriaId('Vehiculo/Mantenimiento', conn);
       await conn.query(
         `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, registrado_por, mantenimiento_id, categoria_id)
          VALUES (?, 'egreso', ?, ?, ?, ?, ?, ?)`,
