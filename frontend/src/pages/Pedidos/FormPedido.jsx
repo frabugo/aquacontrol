@@ -312,7 +312,7 @@ function MapaPedido({ lat, lng, direccion, onCoordsChange, onDireccionChange }) 
           <span className="text-base">&#9888;&#65039;</span>
           <div className="flex-1">
             <p className="text-xs font-medium text-amber-700">Ubicación aproximada — arrastra el pin al lugar exacto del cliente</p>
-            <p className="text-[10px] text-amber-500 font-mono mt-0.5">{Number(lat).toFixed(6)}, {Number(lng).toFixed(6)}</p>
+            <p className="text-[10px] text-amber-500 font-mono mt-0.5">{Number(lat).toFixed(2)}, {Number(lng).toFixed(2)}</p>
           </div>
         </div>
       )}
@@ -321,13 +321,13 @@ function MapaPedido({ lat, lng, direccion, onCoordsChange, onDireccionChange }) 
           <span className="text-base">&#9989;</span>
           <div className="flex-1">
             <p className="text-xs font-medium text-emerald-700">Ubicación confirmada</p>
-            <p className="text-[10px] text-emerald-500 font-mono mt-0.5">{Number(lat).toFixed(6)}, {Number(lng).toFixed(6)}</p>
+            <p className="text-[10px] text-emerald-500 font-mono mt-0.5">{Number(lat).toFixed(2)}, {Number(lng).toFixed(2)}</p>
           </div>
         </div>
       )}
       {hasCoords && pinStatus === 'none' && (
         <div className="mt-2 text-center">
-          <span className="text-xs text-slate-400 font-mono">{Number(lat).toFixed(6)}, {Number(lng).toFixed(6)}</span>
+          <span className="text-xs text-slate-400 font-mono">{Number(lat).toFixed(2)}, {Number(lng).toFixed(2)}</span>
           <span className="text-xs text-slate-400 ml-2">Arrastra el marcador para ajustar</span>
         </div>
       )}
@@ -605,7 +605,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                         <div>
                           <span className="text-slate-400">Deuda actual</span>
                           <p className={`font-bold ${Number(cliente.saldo_dinero) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                            S/ {Number(cliente.saldo_dinero || 0).toFixed(6)}
+                            S/ {Number(cliente.saldo_dinero || 0).toFixed(2)}
                           </p>
                         </div>
                         <div>
@@ -774,7 +774,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                                               {p.es_retornable && (
                                                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">Retornable</span>
                                               )}
-                                              <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(6)}</span>
+                                              <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(2)}</span>
                                             </div>
                                           </button>
                                         </li>
@@ -856,7 +856,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                               <div className="flex items-end">
                                 <div className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-right">
                                   <div className="text-xs text-slate-400">Subtotal</div>
-                                  <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(6)}</div>
+                                  <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
                                 </div>
                               </div>
                             </div>
@@ -878,7 +878,7 @@ export default function FormPedido({ isOpen, onClose, onSaved }) {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-blue-600">Total estimado</p>
-                        <p className="text-2xl font-bold text-blue-800">S/ {totalCalc.toFixed(6)}</p>
+                        <p className="text-2xl font-bold text-blue-800">S/ {totalCalc.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>

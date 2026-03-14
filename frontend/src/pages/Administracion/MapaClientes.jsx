@@ -261,7 +261,7 @@ function MapaConClientes({ clientes, mapRef }) {
               {c.direccion && <p className="text-slate-500 mt-0.5">{c.direccion}</p>}
               {c.telefono && <p className="text-slate-500">{c.telefono}</p>}
               <p className="text-[10px] text-slate-400 font-mono mt-1">
-                {Number(c.latitud).toFixed(6)}, {Number(c.longitud).toFixed(6)}
+                {Number(c.latitud).toFixed(2)}, {Number(c.longitud).toFixed(2)}
               </p>
             </div>
           </_rl.Popup>

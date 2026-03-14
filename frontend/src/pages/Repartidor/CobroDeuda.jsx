@@ -113,7 +113,7 @@ export default function CobroDeuda() {
 
   function seleccionarVenta(v) {
     setVentaSelId(v.id);
-    setMonto(v.saldo_pendiente.toFixed(6));
+    setMonto(v.saldo_pendiente.toFixed(2));
   }
 
   async function handleSubmit(e) {
@@ -122,7 +122,7 @@ export default function CobroDeuda() {
     const montoNum = Number(monto);
     if (!clienteId) return setError('Selecciona un cliente');
     if (!montoNum || montoNum <= 0) return setError('Ingresa un monto válido');
-    if (montoNum > clienteDeuda) return setError(`El monto excede la deuda (S/ ${clienteDeuda.toFixed(6)})`);
+    if (montoNum > clienteDeuda) return setError(`El monto excede la deuda (S/ ${clienteDeuda.toFixed(2)})`);
 
     setSaving(true);
     try {
@@ -133,7 +133,7 @@ export default function CobroDeuda() {
         venta_id: ventaSelId || null,
         notas: notas.trim() || undefined,
       });
-      setExito(`Cobro registrado. Nueva deuda: S/ ${Number(res.saldo_actualizado).toFixed(6)}`);
+      setExito(`Cobro registrado. Nueva deuda: S/ ${Number(res.saldo_actualizado).toFixed(2)}`);
       limpiarCliente();
       const cobros = await getCobrosDeuda(ruta.id).catch(() => []);
       setHistorial(cobros);
@@ -195,7 +195,7 @@ export default function CobroDeuda() {
               <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-blue-800">{clienteNombre}</p>
-                  <p className="text-xs text-amber-600 font-medium">Deuda total: S/ {clienteDeuda.toFixed(6)}</p>
+                  <p className="text-xs text-amber-600 font-medium">Deuda total: S/ {clienteDeuda.toFixed(2)}</p>
                 </div>
                 <button type="button" onClick={limpiarCliente}
                   className="text-blue-400 hover:text-blue-600 transition text-lg">✕</button>
@@ -218,7 +218,7 @@ export default function CobroDeuda() {
                         className="w-full px-4 py-2.5 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 transition">
                         <div className="flex justify-between items-center">
                           <p className="text-sm font-medium text-slate-800">{c.nombre}</p>
-                          <span className="text-xs font-bold text-amber-600">S/ {Number(c.saldo_dinero).toFixed(6)}</span>
+                          <span className="text-xs font-bold text-amber-600">S/ {Number(c.saldo_dinero).toFixed(2)}</span>
                         </div>
                       </button>
                     ))}
@@ -259,13 +259,13 @@ export default function CobroDeuda() {
                           <span className="text-sm font-medium text-slate-700">
                             {v.folio ? `#${v.folio}` : `Venta #${v.id}`}
                           </span>
-                          <span className="text-sm font-bold text-red-600">S/ {v.saldo_pendiente.toFixed(6)}</span>
+                          <span className="text-sm font-bold text-red-600">S/ {v.saldo_pendiente.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-slate-400">{fmtFecha(v.fecha_hora)}</span>
                           <span className="text-xs text-slate-400">
-                            Total: S/ {Number(v.total).toFixed(6)}
-                            {v.total_abonado > 0 && ` · Abonado: S/ ${v.total_abonado.toFixed(6)}`}
+                            Total: S/ {Number(v.total).toFixed(2)}
+                            {v.total_abonado > 0 && ` · Abonado: S/ ${v.total_abonado.toFixed(2)}`}
                           </span>
                         </div>
                       </button>
@@ -345,7 +345,7 @@ export default function CobroDeuda() {
                   <div key={c.id} className="border border-slate-100 rounded-xl px-4 py-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-semibold text-slate-700">{c.cliente_nombre}</span>
-                      <span className="text-sm font-bold text-green-700">S/ {Number(c.monto).toFixed(6)}</span>
+                      <span className="text-sm font-bold text-green-700">S/ {Number(c.monto).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-400">{fecha} — {hora}</span>
@@ -354,7 +354,7 @@ export default function CobroDeuda() {
                       </span>
                     </div>
                     {Number(c.saldo_dinero) > 0 && (
-                      <p className="text-xs text-amber-500 mt-1">Deuda restante: S/ {Number(c.saldo_dinero).toFixed(6)}</p>
+                      <p className="text-xs text-amber-500 mt-1">Deuda restante: S/ {Number(c.saldo_dinero).toFixed(2)}</p>
                     )}
                     {Number(c.saldo_dinero) === 0 && (
                       <p className="text-xs text-green-600 mt-1">Deuda saldada</p>

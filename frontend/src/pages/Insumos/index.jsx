@@ -6,7 +6,7 @@ import ModalCompra from './ModalCompra';
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
 
-function formatN(n) { return Number(n ?? 0).toFixed(6); }
+function formatN(n) { return Number(n ?? 0).toFixed(2); }
 
 /* ── Modal Crear / Editar Insumo ── */
 function InsumoModal({ isOpen, onClose, onSaved, initial }) {

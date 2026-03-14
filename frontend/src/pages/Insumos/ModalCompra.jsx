@@ -126,7 +126,7 @@ export default function ModalCompra({ isOpen, onClose, onSaved }) {
                   {preciosHist.slice(0, 10).map((ph, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <span className="text-slate-600">{ph.insumo_nombre ?? ph.presentacion_nombre ?? `Item #${ph.id}`}</span>
-                      <span className="tabular-nums text-slate-700 font-medium">S/ {Number(ph.precio_unitario ?? 0).toFixed(6)}</span>
+                      <span className="tabular-nums text-slate-700 font-medium">S/ {Number(ph.precio_unitario ?? 0).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

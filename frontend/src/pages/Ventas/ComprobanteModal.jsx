@@ -120,13 +120,13 @@ export default function ComprobanteModal({ venta, onClose, onEmitido }) {
   const factor = 1 + igvPct / 100;
   const lineas = (venta?.lineas ?? []).map(l => {
     const totalLinea    = Number(l.subtotal);
-    const subtotalLinea = +(totalLinea / factor).toFixed(6);
-    const igvLinea      = +(totalLinea - subtotalLinea).toFixed(6);
+    const subtotalLinea = +(totalLinea / factor).toFixed(2);
+    const igvLinea      = +(totalLinea - subtotalLinea).toFixed(2);
     return { ...l, sub: subtotalLinea, igvL: igvLinea, tot: totalLinea };
   });
   const totalVenta     = Number(venta?.total || 0);
-  const subtotalGlobal = +(totalVenta / factor).toFixed(6);
-  const igvGlobal      = +(totalVenta - subtotalGlobal).toFixed(6);
+  const subtotalGlobal = +(totalVenta / factor).toFixed(2);
+  const igvGlobal      = +(totalVenta - subtotalGlobal).toFixed(2);
 
   // Cambiar modo de pago
   function handleModoChange(nuevoModo) {
@@ -179,14 +179,14 @@ export default function ComprobanteModal({ venta, onClose, onEmitido }) {
   // primerDiaDesdeHoy: en crédito = dias del método, en cuotas = 0 (hoy)
   function redistribuirCuotas(numCuotas, intervaloDias, primerDiaDesdeHoy) {
     if (numCuotas < 1) return;
-    const montoCuota = +(totalVenta / numCuotas).toFixed(6);
+    const montoCuota = +(totalVenta / numCuotas).toFixed(2);
     const arr = [];
     const hoy = new Date();
     for (let i = 0; i < numCuotas; i++) {
       const fecha = new Date(hoy);
       fecha.setDate(fecha.getDate() + primerDiaDesdeHoy + intervaloDias * i);
       arr.push({
-        monto: i === numCuotas - 1 ? +(totalVenta - montoCuota * (numCuotas - 1)).toFixed(6) : montoCuota,
+        monto: i === numCuotas - 1 ? +(totalVenta - montoCuota * (numCuotas - 1)).toFixed(2) : montoCuota,
         fecha: fecha.toISOString().slice(0, 10),
       });
     }

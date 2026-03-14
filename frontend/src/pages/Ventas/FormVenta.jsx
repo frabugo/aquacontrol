@@ -113,7 +113,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
   const subtotalLineas = lineas.reduce((s, l) => s + lineSubtotal(l), 0);
   const totalCalc      = Math.max(0, subtotalLineas - (Number(descuento) || 0));
   const sumPagos       = metodos.reduce((s, m) => s + (Number(pagos[m.nombre]) || 0), 0);
-  const pendiente      = +(totalCalc - sumPagos).toFixed(6);
+  const pendiente      = +(totalCalc - sumPagos).toFixed(2);
   const cubierto       = Math.abs(pendiente) <= 0.02;
 
   /* ── Cliente seleccionado ── */
@@ -188,11 +188,11 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
   /* ── Payment helpers ── */
   function todoPorMetodo(key) {
     const reset = Object.fromEntries(metodos.map(m => [m.nombre, '0']));
-    setPagos({ ...reset, [key]: totalCalc.toFixed(6) });
+    setPagos({ ...reset, [key]: totalCalc.toFixed(2) });
   }
 
   function distribuirResto(key) {
-    const resto = Math.max(0, +(totalCalc - sumPagos + (Number(pagos[key]) || 0)).toFixed(6));
+    const resto = Math.max(0, +(totalCalc - sumPagos + (Number(pagos[key]) || 0)).toFixed(2));
     setPagos(prev => ({ ...prev, [key]: resto > 0 ? String(resto) : '' }));
   }
 
@@ -203,7 +203,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
     if (!cliente) return setError('Se requiere seleccionar un cliente');
     if (lineas.some(l => !l.presentacion)) return setError('Cada línea requiere un producto');
     if (totalCalc <= 0) return setError('El total debe ser mayor a 0');
-    if (pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(6)} por asignar`);
+    if (pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(2)} por asignar`);
     if (Number(pagos.credito) > 0 && !cliente) return setError('Se requiere un cliente para registrar crédito');
 
     setLoading(true);
@@ -286,7 +286,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                 <div className="flex flex-wrap gap-3 mt-1.5">
                   {Number(cliente.saldo_dinero) > 0 && (
                     <p className="text-xs text-orange-600">
-                      Deuda actual: S/ {Number(cliente.saldo_dinero).toFixed(6)}
+                      Deuda actual: S/ {Number(cliente.saldo_dinero).toFixed(2)}
                     </p>
                   )}
                   {Number(cliente.bidones_prestados) > 0 && (
@@ -381,7 +381,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                                         {p.es_retornable && (
                                           <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">Retornable</span>
                                         )}
-                                        <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(6)}</span>
+                                        <span className="text-xs font-medium text-slate-600">S/ {Number(p.precio_base).toFixed(2)}</span>
                                       </div>
                                     </button>
                                   </li>
@@ -472,7 +472,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                         <div className="flex items-end">
                           <div className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-right">
                             <div className="text-xs text-slate-400">Subtotal</div>
-                            <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(6)}</div>
+                            <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
                           </div>
                         </div>
                       </div>
@@ -516,7 +516,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                 </div>
                 <div className="ml-auto text-right">
                   <div className="text-xs text-slate-400">Total venta</div>
-                  <div className="text-xl font-bold text-slate-800">S/ {totalCalc.toFixed(6)}</div>
+                  <div className="text-xl font-bold text-slate-800">S/ {totalCalc.toFixed(2)}</div>
                 </div>
               </div>
 
@@ -549,10 +549,10 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                 </span>
                 <span className={`font-bold ${cubierto ? 'text-green-700' : pendiente < 0 ? 'text-blue-700' : 'text-amber-600'}`}>
                   {cubierto
-                    ? `S/ ${totalCalc.toFixed(6)}`
+                    ? `S/ ${totalCalc.toFixed(2)}`
                     : pendiente < 0
-                      ? `S/ ${Math.abs(pendiente).toFixed(6)}`
-                      : `S/ ${pendiente.toFixed(6)}`}
+                      ? `S/ ${Math.abs(pendiente).toFixed(2)}`
+                      : `S/ ${pendiente.toFixed(2)}`}
                 </span>
               </div>
               {Number(pagos.credito) > 0 && !cliente && (
@@ -562,7 +562,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
               )}
               {Number(pagos.credito) > 0 && cliente && (
                 <p className="text-xs text-orange-600 mt-1.5">
-                  S/ {Number(pagos.credito).toFixed(6)} se registrarán como deuda de {cliente.nombre}
+                  S/ {Number(pagos.credito).toFixed(2)} se registrarán como deuda de {cliente.nombre}
                 </p>
               )}
             </div>

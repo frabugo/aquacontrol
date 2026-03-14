@@ -184,7 +184,7 @@ export default function Metas() {
           </div>
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <p className="text-xs text-slate-400 uppercase tracking-wide">Total comisiones</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">S/. {Number(resumen.total_comisiones).toFixed(6)}</p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">S/. {Number(resumen.total_comisiones).toFixed(2)}</p>
           </div>
         </div>
 
@@ -215,8 +215,8 @@ export default function Metas() {
                 <tr key={m.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                   <td className="px-4 py-3 font-medium text-slate-800">{m.usuario_nombre}</td>
                   <td className="px-4 py-3 text-slate-500 capitalize">{m.rol}</td>
-                  <td className="px-4 py-3 text-right">{Number(m.meta_soles).toFixed(6)}</td>
-                  <td className="px-4 py-3 text-right">{Number(m.vendido_soles).toFixed(6)}</td>
+                  <td className="px-4 py-3 text-right">{Number(m.meta_soles).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right">{Number(m.vendido_soles).toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
@@ -228,10 +228,10 @@ export default function Metas() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">{m.vendido_bidones}</td>
-                  <td className="px-4 py-3 text-right">S/. {m.comision_ganada.toFixed(6)}</td>
+                  <td className="px-4 py-3 text-right">S/. {m.comision_ganada.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right">
                     {m.bono_aplica
-                      ? <span className="text-green-600 font-medium">S/. {Number(m.bono_cumplido).toFixed(6)}</span>
+                      ? <span className="text-green-600 font-medium">S/. {Number(m.bono_cumplido).toFixed(2)}</span>
                       : <span className="text-slate-300">—</span>
                     }
                   </td>

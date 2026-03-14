@@ -7,7 +7,7 @@ const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 te
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
 
 function formatS(n) {
-  return `S/ ${Number(n || 0).toFixed(6)}`;
+  return `S/ ${Number(n || 0).toFixed(2)}`;
 }
 function formatHora(dt) {
   if (!dt) return '';
@@ -277,7 +277,7 @@ export default function MiCaja() {
                   El cajero debe confirmar la recepcion.
                 </p>
                 <div className="mt-3 px-4 py-2.5 bg-amber-100 rounded-lg text-sm font-semibold text-amber-800">
-                  Neto a entregar: S/ {Number(ruta.neto_a_entregar || 0).toFixed(6)}
+                  Neto a entregar: S/ {Number(ruta.neto_a_entregar || 0).toFixed(2)}
                 </div>
               </>
             )}

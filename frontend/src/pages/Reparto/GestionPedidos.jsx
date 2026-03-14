@@ -303,7 +303,7 @@ function NuevoPedidoModal({ isOpen, onClose, onSaved }) {
                           onChange={e => updateLinea(i, 'precio_unitario', parseFloat(e.target.value) || 0)} />
                       </div>
                       <p className="text-right text-xs text-slate-400 mt-1 font-semibold">
-                        Subtotal: S/ {((l.precio_unitario || 0) * (l.cantidad || 0)).toFixed(6)}
+                        Subtotal: S/ {((l.precio_unitario || 0) * (l.cantidad || 0)).toFixed(2)}
                       </p>
                     </div>
 
@@ -320,7 +320,7 @@ function NuevoPedidoModal({ isOpen, onClose, onSaved }) {
             )}
             {lineas.length > 0 && (
               <div className="mt-3 text-right text-base font-bold text-slate-800">
-                Total: S/ {totalPedido.toFixed(6)}
+                Total: S/ {totalPedido.toFixed(2)}
               </div>
             )}
           </div>

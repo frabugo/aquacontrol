@@ -104,17 +104,17 @@ export default function VentaAlPaso() {
 
   const totalCalc = lineas.reduce((s, l) => s + (Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0), 0);
   const sumPagos  = metodos.reduce((s, m) => s + (Number(pagos[m.nombre]) || 0), 0);
-  const pendiente = +(totalCalc - sumPagos).toFixed(6);
+  const pendiente = +(totalCalc - sumPagos).toFixed(2);
   const cubierto  = Math.abs(pendiente) <= 0.02;
 
   function todoPorMetodo(key) {
     const reset = Object.fromEntries(metodos.map(m => [m.nombre, '0']));
-    setPagos({ ...reset, [key]: totalCalc.toFixed(6) });
+    setPagos({ ...reset, [key]: totalCalc.toFixed(2) });
   }
 
   async function handleSubmit() {
     setError('');
-    if (!cubierto && pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(6)} por asignar`);
+    if (!cubierto && pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(2)} por asignar`);
     setSaving(true);
     try {
       const pagosArray = metodos
@@ -328,13 +328,13 @@ export default function VentaAlPaso() {
                       </div>
 
                       <p className="text-right text-xs text-slate-400 mt-1.5 font-semibold">
-                        Subtotal: S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(6)}
+                        Subtotal: S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(2)}
                       </p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <p className="text-lg font-bold text-slate-800">Total: S/ {totalCalc.toFixed(6)}</p>
+                  <p className="text-lg font-bold text-slate-800">Total: S/ {totalCalc.toFixed(2)}</p>
                   <button onClick={() => setPaso(2)} disabled={totalCalc <= 0 || lineas.some(l => !Number(l.precio_unitario))}
                     className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition">
                     Siguiente: Cobro
@@ -403,7 +403,7 @@ export default function VentaAlPaso() {
                           Venta #{v.id}
                         </span>
                         <span className={`text-sm font-bold ${v.estado === 'cancelada' ? 'text-red-400 line-through' : 'text-green-700'}`}>
-                          S/ {Number(v.total).toFixed(6)}
+                          S/ {Number(v.total).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -445,12 +445,12 @@ export default function VentaAlPaso() {
               {lineas.map(l => (
                 <div key={l.presentacion_id} className="flex justify-between text-sm">
                   <span className="text-slate-600">{l.nombre} x{l.cantidad}</span>
-                  <span className="font-medium text-slate-800">S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(6)}</span>
+                  <span className="font-medium text-slate-800">S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(2)}</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm font-bold text-slate-800 mt-1.5 pt-1.5 border-t border-slate-200">
                 <span>Total</span>
-                <span>S/ {totalCalc.toFixed(6)}</span>
+                <span>S/ {totalCalc.toFixed(2)}</span>
               </div>
               {clienteNombre && <p className="text-xs text-blue-600 mt-1">Cliente: {clienteNombre}</p>}
             </div>
@@ -484,7 +484,7 @@ export default function VentaAlPaso() {
                 {cubierto ? 'Cobro completo' : 'Pendiente por asignar'}
               </span>
               <span className={`font-bold ${cubierto ? 'text-green-700' : 'text-amber-600'}`}>
-                S/ {cubierto ? totalCalc.toFixed(6) : pendiente.toFixed(6)}
+                S/ {cubierto ? totalCalc.toFixed(2) : pendiente.toFixed(2)}
               </span>
             </div>
 

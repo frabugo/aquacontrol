@@ -682,7 +682,7 @@ export default function Mantenimientos() {
                       <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TIPO_COLORS[m.tipo]}`}>{TIPOS[m.tipo]}</span></td>
                       <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate">{m.descripcion}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{m.kilometraje ? m.kilometraje.toLocaleString() : '—'}</td>
-                      <td className="px-4 py-3 text-right">{Number(m.costo) > 0 ? `S/. ${Number(m.costo).toFixed(6)}` : '—'}</td>
+                      <td className="px-4 py-3 text-right">{Number(m.costo) > 0 ? `S/. ${Number(m.costo).toFixed(2)}` : '—'}</td>
                       <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ESTADO_COLORS[m.estado]}`}>{m.estado}</span></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">

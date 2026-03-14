@@ -86,7 +86,7 @@ function CargaInicialModal({ cliente, onClose, onSaved }) {
               <label className="block text-xs font-medium text-slate-600 mb-1">Deuda dinero (S/)</label>
               <input type="number" min="0" step="0.000001" className={inputCls}
                 value={saldoDinero} onChange={e => setSaldoDinero(e.target.value)} placeholder="0.00" />
-              <p className="text-xs text-slate-400 mt-1">Actual: S/{Number(cliente.saldo_dinero).toFixed(6)}</p>
+              <p className="text-xs text-slate-400 mt-1">Actual: S/{Number(cliente.saldo_dinero).toFixed(2)}</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Bidones prestados</label>
