@@ -110,6 +110,10 @@ exports.create = async (req, res) => {
 /* ── PUT /api/presentaciones/:id ── */
 exports.update = async (req, res) => {
   try {
+    const [[check]] = await db.query('SELECT es_sistema FROM presentaciones WHERE id = ?', [req.params.id]);
+    if (check?.es_sistema) return res.status(403).json({ error: 'Este producto es del sistema y no se puede modificar' });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
+  try {
     const {
       nombre, descripcion, tipo = 'agua', unidad = 'unidad',
       precio_base = 0, stock_minimo = 0, es_retornable = 0, requiere_lavado = 0,
@@ -147,6 +151,10 @@ exports.update = async (req, res) => {
 
 /* ── DELETE /api/presentaciones/:id (soft delete) ── */
 exports.deactivate = async (req, res) => {
+  try {
+    const [[check]] = await db.query('SELECT es_sistema FROM presentaciones WHERE id = ?', [req.params.id]);
+    if (check?.es_sistema) return res.status(403).json({ error: 'Este producto es del sistema y no se puede desactivar' });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
   try {
     const [result] = await db.query(
       'UPDATE presentaciones SET activo = 0 WHERE id = ? AND activo = 1',
