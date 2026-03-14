@@ -684,3 +684,77 @@ exports.getRepartidores = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+/* == GET /api/caja/:id/resumen-bidones == */
+exports.resumenBidones = async (req, res) => {
+  try {
+    const [[caja]] = await db.query('SELECT id, fecha FROM cajas WHERE id = ?', [req.params.id]);
+    if (!caja) return res.status(404).json({ error: 'Caja no encontrada' });
+
+    const fecha = caja.fecha;
+
+    // Produccion (llenados) del dia
+    const [[prod]] = await db.query(
+      `SELECT COALESCE(SUM(cantidad_producida), 0) AS producidos
+         FROM lotes_produccion WHERE fecha = ? AND estado != 'rechazado'`, [fecha]
+    );
+
+    // Lavados del dia
+    const [[lav]] = await db.query(
+      `SELECT COALESCE(SUM(cantidad), 0) AS lavados
+         FROM lavados WHERE DATE(fecha_hora) = ?`, [fecha]
+    );
+
+    // Compras de bidones del dia
+    const [[comp]] = await db.query(
+      `SELECT COALESCE(SUM(cd.cantidad), 0) AS comprados
+         FROM compra_detalle cd
+         JOIN compras c ON c.id = cd.compra_id
+         WHERE c.fecha = ? AND c.estado != 'anulada' AND cd.tipo_item = 'presentacion'`, [fecha]
+    );
+
+    // Ventas del dia por tipo_linea
+    const [ventasTipo] = await db.query(
+      `SELECT vd.tipo_linea, SUM(vd.cantidad) AS cantidad, SUM(vd.vacios_recibidos) AS vacios
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         WHERE DATE(v.fecha_hora) = ? AND v.estado != 'cancelada'
+         GROUP BY vd.tipo_linea`, [fecha]
+    );
+
+    const recargas = ventasTipo.find(r => r.tipo_linea === 'recarga');
+    const completos = ventasTipo.find(r => r.tipo_linea === 'compra_bidon');
+    const prestamos = ventasTipo.find(r => r.tipo_linea === 'prestamo');
+    const productos = ventasTipo.find(r => r.tipo_linea === 'producto');
+    const totalVacios = ventasTipo.reduce((s, r) => s + Number(r.vacios || 0), 0);
+
+    // Devoluciones del dia (bidones que debian)
+    const [[devs]] = await db.query(
+      `SELECT COALESCE(SUM(cantidad), 0) AS devueltos
+         FROM devoluciones WHERE fecha = ? AND estado = 'activa'`, [fecha]
+    );
+
+    // Stock actual
+    const [stock] = await db.query(
+      `SELECT nombre, stock_llenos, stock_vacios, stock_en_lavado
+         FROM presentaciones WHERE activo = 1 AND (stock_llenos > 0 OR stock_vacios > 0 OR stock_en_lavado > 0)`
+    );
+
+    res.json({
+      fecha,
+      producidos: Number(prod.producidos),
+      lavados: Number(lav.lavados),
+      comprados: Number(comp.comprados),
+      vendidos_recarga: Number(recargas?.cantidad || 0),
+      vendidos_completo: Number(completos?.cantidad || 0),
+      vendidos_prestamo: Number(prestamos?.cantidad || 0),
+      vendidos_producto: Number(productos?.cantidad || 0),
+      vacios_recibidos_ventas: totalVacios,
+      devueltos_deuda: Number(devs.devueltos),
+      stock,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -13,6 +13,7 @@ router.get('/movimientos',            auth, ctrl.getMovimientos);
 router.post('/movimientos',           auth, ctrl.addMovimiento);
 router.put('/movimientos/:id/anular', auth, ctrl.anularMovimiento);
 router.get('/:id',                     auth, ctrl.getById);
+router.get('/:id/resumen-bidones',      auth, ctrl.resumenBidones);
 router.get('/:id/movimientos',        auth, ctrl.getMovimientosCaja);
 
 module.exports = router;
