@@ -689,38 +689,40 @@ exports.getRepartidores = async (req, res) => {
 /* == GET /api/caja/:id/resumen-bidones == */
 exports.resumenBidones = async (req, res) => {
   try {
-    const [[caja]] = await db.query('SELECT id, fecha, cerrada_en FROM cajas WHERE id = ?', [req.params.id]);
+    const [[caja]] = await db.query('SELECT id, fecha, hora_apertura, cerrada_en FROM cajas WHERE id = ?', [req.params.id]);
     if (!caja) return res.status(404).json({ error: 'Caja no encontrada' });
 
     const fecha = caja.fecha;
+    const desde = caja.hora_apertura;
+    const hasta = caja.cerrada_en || new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    // Produccion (llenados) del dia
+    // Produccion (llenados) en el rango de la caja
     const [[prod]] = await db.query(
       `SELECT COALESCE(SUM(cantidad_producida), 0) AS producidos
-         FROM lotes_produccion WHERE fecha = ? AND estado != 'rechazado'`, [fecha]
+         FROM lotes_produccion WHERE creado_en >= ? AND creado_en <= ? AND estado != 'rechazado'`, [desde, hasta]
     );
 
-    // Lavados del dia
+    // Lavados en el rango de la caja
     const [[lav]] = await db.query(
       `SELECT COALESCE(SUM(cantidad), 0) AS lavados
-         FROM lavados WHERE DATE(fecha_hora) = ?`, [fecha]
+         FROM lavados WHERE fecha_hora >= ? AND fecha_hora <= ?`, [desde, hasta]
     );
 
-    // Compras de bidones del dia
+    // Compras de bidones en el rango de la caja
     const [[comp]] = await db.query(
       `SELECT COALESCE(SUM(cd.cantidad), 0) AS comprados
          FROM compra_detalle cd
          JOIN compras c ON c.id = cd.compra_id
-         WHERE c.fecha = ? AND c.estado != 'anulada' AND cd.tipo_item = 'presentacion'`, [fecha]
+         WHERE c.creado_en >= ? AND c.creado_en <= ? AND c.estado != 'anulada' AND cd.tipo_item = 'presentacion'`, [desde, hasta]
     );
 
-    // Ventas del dia por tipo_linea
+    // Ventas por tipo_linea en el rango de la caja
     const [ventasTipo] = await db.query(
       `SELECT vd.tipo_linea, SUM(vd.cantidad) AS cantidad, SUM(vd.vacios_recibidos) AS vacios
          FROM venta_detalle vd
          JOIN ventas v ON v.id = vd.venta_id
-         WHERE DATE(v.fecha_hora) = ? AND v.estado != 'cancelada'
-         GROUP BY vd.tipo_linea`, [fecha]
+         WHERE v.fecha_hora >= ? AND v.fecha_hora <= ? AND v.estado != 'cancelada'
+         GROUP BY vd.tipo_linea`, [desde, hasta]
     );
 
     const recargas = ventasTipo.find(r => r.tipo_linea === 'recarga');
@@ -735,15 +737,15 @@ exports.resumenBidones = async (req, res) => {
          FROM venta_detalle vd
          JOIN ventas v ON v.id = vd.venta_id
          JOIN presentaciones p ON p.id = vd.presentacion_id
-         WHERE DATE(v.fecha_hora) = ? AND v.estado != 'cancelada'
+         WHERE v.fecha_hora >= ? AND v.fecha_hora <= ? AND v.estado != 'cancelada'
            AND vd.tipo_linea = 'recarga' AND p.es_retornable = 1
-           AND vd.cantidad > vd.vacios_recibidos`, [fecha]
+           AND vd.cantidad > vd.vacios_recibidos`, [desde, hasta]
     );
 
     // Devoluciones del dia (bidones que debian)
     const [[devs]] = await db.query(
       `SELECT COALESCE(SUM(cantidad), 0) AS devueltos
-         FROM devoluciones WHERE fecha = ? AND estado = 'activa'`, [fecha]
+         FROM devoluciones WHERE creado_en >= ? AND creado_en <= ? AND estado = 'activa'`, [desde, hasta]
     );
 
     // Stock al cierre de caja (o actual si está abierta)
