@@ -42,6 +42,7 @@ export default function HistorialCajas() {
 
   /* Ticket */
   const [ticketCaja, setTicketCaja]     = useState(null);
+  const [reporteCaja, setReporteCaja]   = useState(null);
 
   /* Modal */
   const [selCaja, setSelCaja]           = useState(null);
