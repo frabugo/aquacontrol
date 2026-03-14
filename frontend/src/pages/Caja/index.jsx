@@ -530,7 +530,7 @@ export default function Caja() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-left">
-                {['Fecha / Hora', 'Origen', 'Tipo', 'Método', 'Descripción / Ref.', 'Estado', 'Monto', ''].map((h, i) => (
+                {['Fecha / Hora', 'Origen', 'Tipo', 'Categoría', 'Método', 'Descripción / Ref.', 'Estado', 'Monto', ''].map((h, i) => (
                   <th key={i} className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -539,7 +539,7 @@ export default function Caja() {
               {movLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {[1,2,3,4,5,6,7,8].map(j => (
+                    {[1,2,3,4,5,6,7,8,9].map(j => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 bg-slate-100 animate-pulse rounded" style={{ width: j === 5 ? '160px' : '70px' }} />
                       </td>
@@ -548,7 +548,7 @@ export default function Caja() {
                 ))
               ) : movimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={9} className="px-4 py-10 text-center text-slate-400 text-sm">
                     Sin movimientos registrados
                   </td>
                 </tr>
@@ -595,6 +595,9 @@ export default function Caja() {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${isAnulado ? 'bg-slate-100 text-slate-400 line-through' : tipoInfo.cls}`}>
                           {tipoInfo.label}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {m.categoria_nombre || '—'}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${isAnulado ? 'bg-slate-100 text-slate-400' : metodoInfo.cls}`}>

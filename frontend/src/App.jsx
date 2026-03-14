@@ -54,6 +54,7 @@ const ConfigGeneral     = lazy(() => import('./pages/Config/ConfigGeneral'));
 const MetodosPago       = lazy(() => import('./pages/Config/MetodosPago'));
 const Facturacion       = lazy(() => import('./pages/Config/Facturacion'));
 const CondicionesPago   = lazy(() => import('./pages/Config/CondicionesPago'));
+const CategoriasCaja    = lazy(() => import('./pages/Config/CategoriasCaja'));
 const Reportes          = lazy(() => import('./pages/Reportes'));
 const Metas             = lazy(() => import('./pages/Metas'));
 const Mantenimientos    = lazy(() => import('./pages/Mantenimientos'));
@@ -233,6 +234,9 @@ export default function App() {
           } />
           <Route path="/configuracion/condiciones-pago" element={
             <PrivateRoute><CondicionesPago /></PrivateRoute>
+          } />
+          <Route path="/configuracion/categorias-caja" element={
+            <PrivateRoute><CategoriasCaja /></PrivateRoute>
           } />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
