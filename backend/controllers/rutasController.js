@@ -887,13 +887,17 @@ exports.registrarGasto = async (req, res) => {
          `S/${montoNum.toFixed(2)} - ${desc}`, caja.id]
       );
     } else {
-      // Ingreso manual: sumar a total_cobrado
+      // Ingreso manual: sumar a total_cobrado y al método correspondiente
+      const metCol = (metodo_pago === 'transferencia' || metodo_pago === 'yape') ? 'cobrado_transferencia'
+        : metodo_pago === 'tarjeta' ? 'cobrado_tarjeta'
+        : 'cobrado_efectivo';
       await conn.query(
         `UPDATE caja_ruta SET
+           ${metCol} = ${metCol} + ?,
            total_cobrado = total_cobrado + ?,
            neto_a_entregar = total_cobrado - total_gastos
          WHERE id = ?`,
-        [montoNum, caja.id]
+        [montoNum, montoNum, caja.id]
       );
     }
 
