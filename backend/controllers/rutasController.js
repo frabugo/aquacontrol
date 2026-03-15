@@ -99,17 +99,19 @@ exports.miRuta = async (req, res) => {
       [ruta.id]
     );
 
-    // Cobros dinámicos desde caja_ruta_movimientos (todos los ingresos por método)
+    // Neto por método de pago (ingresos - egresos) desde movimientos
     if (ruta.caja_ruta_id) {
       const [cobros] = await db.query(
-        `SELECT metodo_pago, SUM(monto) AS total
+        `SELECT metodo_pago,
+                SUM(CASE WHEN clasificacion = 'ingreso' OR tipo = 'cobro_venta' THEN monto ELSE 0 END) AS ingresos,
+                SUM(CASE WHEN clasificacion = 'egreso' THEN monto ELSE 0 END) AS egresos
            FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = ? AND (tipo = 'cobro_venta' OR clasificacion = 'ingreso') AND anulado = 0
+          WHERE caja_ruta_id = ? AND anulado = 0
           GROUP BY metodo_pago`,
         [ruta.caja_ruta_id]
       );
       for (const c of cobros) {
-        ruta[`cobrado_${c.metodo_pago}`] = Number(c.total);
+        ruta[`cobrado_${c.metodo_pago}`] = Number(c.ingresos) - Number(c.egresos);
       }
     }
 
