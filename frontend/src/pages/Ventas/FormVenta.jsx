@@ -15,8 +15,9 @@ const TIPO_LINEA_RETORNABLE = [
 ];
 const TIPO_LINEA_NORMAL = [
   { value: 'producto', label: 'Producto', hint: 'Venta sin retorno' },
+  { value: 'bonificacion', label: 'Bonificación', hint: 'Gratis' },
 ];
-const ALL_TIPOS = [...TIPO_LINEA_RETORNABLE, TIPO_LINEA_NORMAL[0]];
+const ALL_TIPOS = [...TIPO_LINEA_RETORNABLE, { value: 'producto', label: 'Producto', hint: 'Venta sin retorno' }];
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
