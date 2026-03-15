@@ -382,12 +382,17 @@ export default function MiCaja() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-700 max-w-xs">
-                          <div className="truncate">{m.descripcion}</div>
+                          <div className={`truncate ${m.anulado ? 'line-through text-slate-400' : ''}`}>{m.descripcion}</div>
                           {m.venta_folio && (
                             <div className="mt-0.5">
                               <span className="font-mono text-xs text-slate-500">{m.venta_folio}</span>
                             </div>
                           )}
+                          {m.anulado ? (
+                            <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-semibold">ANULADO</span>
+                          ) : (!m.venta_id && (m.tipo === 'ingreso' || m.tipo === 'egreso') && (
+                            <button onClick={() => handleAnularMov(m.id)} className="text-xs text-red-500 hover:text-red-700 mt-0.5">Anular</button>
+                          ))}
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                           {m.registrado_por_nombre || '—'}
