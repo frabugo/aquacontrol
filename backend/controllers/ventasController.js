@@ -248,8 +248,9 @@ exports.create = async (req, res) => {
       if (Number(pagado_credito) > 0)       pagos.push({ metodo: 'credito',       monto: Number(pagado_credito) });
     }
 
-    // Validar que haya al menos un pago
-    if (pagos.length === 0) {
+    // Validar que haya al menos un pago (excepto bonificaciones puras)
+    const esSoloBonif = lineas.every(l => l.tipo_linea === 'bonificacion');
+    if (pagos.length === 0 && !esSoloBonif) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: 'Selecciona al menos un método de pago' });
     }
