@@ -162,9 +162,9 @@ export default function MiCaja() {
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">{error}</div>
         )}
 
-        {/* ── Resumen de cobros ── */}
+        {/* ── Resumen de Caja ── */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Resumen de cobros</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Resumen de Caja</p>
           <div className="space-y-2">
             {metodos.map(m => {
               const COLOR_CLS = {
