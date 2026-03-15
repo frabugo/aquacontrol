@@ -435,7 +435,7 @@ export default function Clientes() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left">
-                {['Nombre', 'DNI', 'Tipo', 'Teléfono', 'Bidones', 'Deuda', 'Estado', 'Última compra', ''].map(h => (
+                {['Nombre', 'DNI', 'Tipo', 'Teléfono', 'Bidones', 'Garantía', 'Deuda', 'Estado', 'Última compra', ''].map(h => (
                   <th key={h} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -474,6 +474,11 @@ export default function Clientes() {
                       {c.bidones_prestados > 0
                         ? <span className="font-semibold text-orange-600">{c.bidones_prestados}</span>
                         : <span className="text-slate-400">0</span>}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums whitespace-nowrap text-center">
+                      {Number(c.saldo_garantia) > 0
+                        ? <span className="font-semibold text-purple-600">{formatSoles(c.saldo_garantia)}</span>
+                        : <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 tabular-nums whitespace-nowrap">
                       {Number(c.saldo_dinero) > 0
