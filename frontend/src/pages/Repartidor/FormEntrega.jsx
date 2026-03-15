@@ -27,6 +27,8 @@ export default function FormEntrega({ pedido, ruta, onBack, onSaved }) {
         tipo_linea: d.tipo_linea,
         cantidad: d.cantidad,
         vacios_recibidos: d.vacios_esperados || 0,
+          garantia: '',
+          garantia_metodo: 'efectivo',
         precio_unitario: d.precio_unitario,
         es_retornable: d.es_retornable,
         precio_origen: null,
@@ -107,7 +109,9 @@ export default function FormEntrega({ pedido, ruta, onBack, onSaved }) {
           tipo_linea: l.tipo_linea,
           cantidad: Number(l.cantidad) || 1,
           vacios_recibidos: Number(l.vacios_recibidos) || 0,
-          precio_unitario: Number(l.precio_unitario) || 0,
+          precio_unitario: Number(l.precio_unitario),
+            garantia: Number(l.garantia) || 0,
+            garantia_metodo: l.garantia_metodo || 'efectivo' || 0,
         })),
         pagos: pagosArray,
         notas_repartidor: notas.trim() || null,
@@ -191,13 +195,26 @@ export default function FormEntrega({ pedido, ruta, onBack, onSaved }) {
                   <p className="text-right text-xs text-slate-400 mt-1 font-semibold">
                     Subtotal: S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(2)}
                   </p>
+                  {(l.tipo_linea === 'prestamo' || ((l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') && Number(l.cantidad) > Number(l.vacios_recibidos || 0))) && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-amber-600">Garantia</span>
+                      <input type="number" min="0" step="0.01"
+                        className="w-20 px-2 py-1 text-xs border border-amber-300 rounded-lg text-right bg-amber-50"
+                        value={l.garantia} onChange={e => updateLinea(i, 'garantia', e.target.value)} placeholder="0" />
+                      <select value={l.garantia_metodo} onChange={e => updateLinea(i, 'garantia_metodo', e.target.value)}
+                        className="px-2 py-1 text-xs border border-amber-300 rounded-lg bg-amber-50 text-amber-700">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="yape">Yape</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-3 flex justify-between items-center">
             <p className="text-lg font-bold text-slate-800">Total: S/ {totalCalc.toFixed(2)}</p>
-            <button onClick={() => setPaso(2)} disabled={totalCalc <= 0}
+            <button onClick={() => setPaso(2)} disabled={totalCalc <= 0 && !lineas.every(l => l.tipo_linea === 'bonificacion')}
               className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition">
               Siguiente: Cobro
             </button>

@@ -483,12 +483,13 @@ exports.entregar = async (req, res) => {
     const total = subtotal;
 
     // Validar que los pagos cubran el total
-    if (pagos.length === 0 && total > 0) {
+    const esSoloBonifPed = lineas.every(l => (l.tipo_linea || 'producto') === 'bonificacion');
+    if (pagos.length === 0 && total > 0 && !esSoloBonifPed) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: 'Selecciona al menos un método de pago' });
     }
     const sumPagos = pagos.reduce((s, p) => s + p.monto, 0);
-    if (total > 0 && Math.abs(sumPagos - total) > 0.02) {
+    if (total > 0 && !esSoloBonifPed && Math.abs(sumPagos - total) > 0.02) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: `Suma de pagos (S/ ${sumPagos.toFixed(2)}) no coincide con el total (S/ ${total.toFixed(2)})` });
     }
@@ -603,11 +604,12 @@ exports.entregar = async (req, res) => {
       const sub      = precioU * cantidad;
       const tipoLinea = l.tipo_linea || 'producto';
 
+      const garantiaPed = Number(l.garantia) > 0 ? Number(l.garantia) : 0;
       await conn.query(
         `INSERT INTO venta_detalle
-           (venta_id, presentacion_id, tipo_linea, cantidad, vacios_recibidos, precio_unitario, subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [ventaId, l.presentacion_id, tipoLinea, cantidad, vacios, precioU, sub]
+           (venta_id, presentacion_id, tipo_linea, cantidad, vacios_recibidos, precio_unitario, subtotal, garantia)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [ventaId, l.presentacion_id, tipoLinea, cantidad, vacios, precioU, sub, garantiaPed]
       );
 
       // Registrar movimiento de stock (trazabilidad)
@@ -646,7 +648,7 @@ exports.entregar = async (req, res) => {
       let totalPrestamo = 0;
       for (const l of lineas) {
         const tipoLinea = l.tipo_linea || 'producto';
-        if (tipoLinea !== 'recarga') continue;
+        if (tipoLinea !== 'recarga' && tipoLinea !== 'bonificacion') continue;
         const cantidad = Number(l.cantidad) || 1;
         const vacios   = Math.min(Number(l.vacios_recibidos) || 0, cantidad);
         const faltantes = cantidad - vacios;
@@ -665,6 +667,44 @@ exports.entregar = async (req, res) => {
           [totalPrestamo, pedido.cliente_id]
         );
       }
+    }
+
+    // Garantías al entregar pedido
+    let totalGarantiaPed = 0;
+    let garantiaMetodoPed = 'efectivo';
+    for (const l of lineas) {
+      if (Number(l.garantia) > 0) {
+        totalGarantiaPed += Number(l.garantia);
+        if (l.garantia_metodo) garantiaMetodoPed = l.garantia_metodo;
+      }
+    }
+    if (totalGarantiaPed > 0 && pedido.cliente_id) {
+      await conn.query(
+        'UPDATE clientes SET saldo_garantia = saldo_garantia + ? WHERE id = ?',
+        [totalGarantiaPed, pedido.cliente_id]
+      );
+      const { getCategoriaId } = require('../helpers/categoriaCaja');
+      const catGarPed = await getCategoriaId('Garantía recibida', conn);
+      const [[cliNomPed]] = await conn.query('SELECT nombre FROM clientes WHERE id = ?', [pedido.cliente_id]);
+      if (cajaRuta) {
+        await conn.query(
+          `INSERT INTO caja_ruta_movimientos (caja_ruta_id, venta_id, tipo, clasificacion, categoria_id, metodo_pago, monto, descripcion, registrado_por)
+           VALUES (?, ?, 'ingreso', 'ingreso', ?, ?, ?, ?, ?)`,
+          [cajaRuta.id, ventaId, catGarPed, garantiaMetodoPed, totalGarantiaPed,
+           `Garantía pedido #${pedido.numero || ''} - ${cliNomPed?.nombre || 'Cliente'}`, req.user.id]
+        );
+      }
+      await conn.query(
+        `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, origen, estado_entrega, categoria_id${cajaRuta ? ', caja_ruta_id' : ''})
+         VALUES (?, 'ingreso', ?, ?, ?, ?, ?, ?, 'repartidor', 'pendiente', ?${cajaRuta ? ', ?' : ''})`,
+        cajaRuta
+          ? [cajaPlanta.id, garantiaMetodoPed, totalGarantiaPed,
+             `Garantía pedido #${pedido.numero || ''} - ${cliNomPed?.nombre || 'Cliente'}`,
+             pedido.cliente_id, ventaId, req.user.id, catGarPed, cajaRuta.id]
+          : [cajaPlanta.id, garantiaMetodoPed, totalGarantiaPed,
+             `Garantía pedido #${pedido.numero || ''} - ${cliNomPed?.nombre || 'Cliente'}`,
+             pedido.cliente_id, ventaId, req.user.id, catGarPed]
+      );
     }
 
     if (pedido.cliente_id && deuda_generada > 0) {
