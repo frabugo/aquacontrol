@@ -118,7 +118,7 @@ export default function ComprobanteModal({ venta, onClose, onEmitido }) {
   }
 
   const factor = 1 + igvPct / 100;
-  const lineas = (venta?.lineas ?? []).map(l => {
+  const lineas = (venta?.lineas ?? []).filter(l => l.tipo_linea !== 'bonificacion').map(l => {
     const totalLinea    = Number(l.subtotal);
     const subtotalLinea = +(totalLinea / factor).toFixed(2);
     const igvLinea      = +(totalLinea - subtotalLinea).toFixed(2);
