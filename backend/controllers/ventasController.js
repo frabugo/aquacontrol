@@ -441,15 +441,13 @@ exports.create = async (req, res) => {
       );
     }
 
-    // Cobrar garantías de préstamos
+    // Cobrar garantías de préstamos y recargas con faltantes
     let totalGarantia = 0;
     for (const l of lineas) {
-      if (l.tipo_linea === 'prestamo' && Number(l.garantia) > 0) {
+      if (Number(l.garantia) > 0) {
         totalGarantia += Number(l.garantia);
       }
     }
-    // También garantías de préstamos automáticos (recargas sin vacío devuelto)
-    // Nota: los préstamos automáticos no llevan garantía, solo los explícitos
 
     if (totalGarantia > 0 && cliente_id) {
       // Sumar saldo_garantia al cliente
