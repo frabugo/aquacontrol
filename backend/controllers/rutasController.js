@@ -391,6 +391,15 @@ exports.cargar = async (req, res) => {
       return res.status(400).json({ error: 'Se requiere al menos un item para cargar' });
     }
 
+    // Validar caja principal abierta
+    const [[cajaCheck]] = await conn.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') LIMIT 1"
+    );
+    if (!cajaCheck) {
+      conn.release();
+      return res.status(400).json({ error: 'No se puede cargar sin caja principal abierta. Pida a planta que abra la caja primero.' });
+    }
+
     // Verificar que la ruta siga en preparando
     const [[ruta]] = await conn.query('SELECT id, estado FROM rutas WHERE id = ?', [req.params.id]);
     if (!ruta || ruta.estado !== 'preparando') {
