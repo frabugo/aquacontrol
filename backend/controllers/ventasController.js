@@ -443,9 +443,11 @@ exports.create = async (req, res) => {
 
     // Cobrar garantías de préstamos y recargas con faltantes
     let totalGarantia = 0;
+    let garantiaMetodo = 'efectivo';
     for (const l of lineas) {
       if (Number(l.garantia) > 0) {
         totalGarantia += Number(l.garantia);
+        if (l.garantia_metodo) garantiaMetodo = l.garantia_metodo;
       }
     }
 
@@ -465,8 +467,8 @@ exports.create = async (req, res) => {
         const [[cliNombre]] = await conn.query('SELECT nombre FROM clientes WHERE id = ?', [cliente_id]);
         await conn.query(
           `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, categoria_id)
-           VALUES (?, 'ingreso', 'efectivo', ?, ?, ?, ?, ?, ?)`,
-          [cajaAbierta.id, totalGarantia,
+           VALUES (?, 'ingreso', ?, ?, ?, ?, ?, ?, ?)`,
+          [cajaAbierta.id, garantiaMetodo, totalGarantia,
            `Garantía x${totalPrestamo} bidón(es) - ${cliNombre?.nombre || 'Cliente'}`,
            cliente_id, ventaId, req.user.id, catGar]
         );

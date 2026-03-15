@@ -34,6 +34,7 @@ function newLine(id) {
     descuento_linea: '0',
     precio_origen: null,
     garantia: '',
+    garantia_metodo: 'efectivo',
   };
 }
 
@@ -226,6 +227,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
           vacios_recibidos: Number(l.vacios_recibidos) || 0,
           precio_unitario:  Number(l.precio_unitario) || 0,
           garantia:         Number(l.garantia) || 0,
+          garantia_metodo:  l.garantia_metodo || 'efectivo',
           descuento_linea:  Number(l.descuento_linea) || 0,
         })),
       };
@@ -476,12 +478,18 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
                             <div className="text-xs text-slate-400">Subtotal</div>
                             <div className="text-sm font-bold text-slate-800">S/ {sub.toFixed(2)}</div>
                             {(l.tipo_linea === 'prestamo' || (l.tipo_linea === 'recarga' && Number(l.cantidad) > Number(l.vacios_recibidos || 0))) && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs text-amber-600">Garantia S/</span>
+                              <div className="flex items-center justify-center gap-2 mt-1">
+                                <span className="text-xs text-amber-600 shrink-0">Garantia</span>
                                 <input type="number" inputMode="decimal" min="0" step="0.01"
                                   className="w-20 px-2 py-1 text-xs border border-amber-300 rounded-lg text-right bg-amber-50"
                                   value={l.garantia} onChange={e => updateLine(l.id, { garantia: e.target.value })}
                                   placeholder="0.00" />
+                                <select value={l.garantia_metodo} onChange={e => updateLine(l.id, { garantia_metodo: e.target.value })}
+                                  className="px-2 py-1 text-xs border border-amber-300 rounded-lg bg-amber-50 text-amber-700">
+                                  {metodos.filter(m => m.nombre !== 'credito').map(m => (
+                                    <option key={m.nombre} value={m.nombre}>{m.etiqueta}</option>
+                                  ))}
+                                </select>
                               </div>
                             )}
                           </div>
