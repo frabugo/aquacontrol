@@ -745,7 +745,7 @@ exports.resumenBidones = async (req, res) => {
     // Devoluciones del dia (bidones que debian)
     const [[devs]] = await db.query(
       `SELECT COALESCE(SUM(cantidad), 0) AS devueltos
-         FROM devoluciones WHERE creado_en >= ? AND creado_en <= ? AND estado = 'activa'`, [desde, hasta]
+         FROM devoluciones WHERE creado_en >= ? AND creado_en <= ? AND estado = 'activa' AND origen != 'venta'`, [desde, hasta]
     );
 
     // Stock al cierre de caja (o actual si está abierta)
