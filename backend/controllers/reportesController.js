@@ -547,3 +547,75 @@ exports.rentabilidadClientes = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/* == GET /api/reportes/devoluciones == */
+exports.exportDevoluciones = async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin, origen, estado } = req.query;
+    const conds = [];
+    const params = [];
+    if (fecha_inicio) { conds.push('d.fecha >= ?'); params.push(fecha_inicio); }
+    if (fecha_fin)    { conds.push('d.fecha <= ?'); params.push(fecha_fin); }
+    if (origen)       { conds.push('d.origen = ?'); params.push(origen); }
+    if (estado)       { conds.push('d.estado = ?'); params.push(estado); }
+    else              { conds.push("d.estado = 'activa'"); }
+
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+
+    const [rows] = await db.query(
+      `SELECT d.fecha, d.cantidad, d.origen, d.estado,
+              c.nombre AS cliente, c.ruc_dni AS dni,
+              p.nombre AS producto,
+              u.nombre AS registrado_por,
+              v.folio AS venta_folio,
+              d.notas,
+              d.creado_en
+         FROM devoluciones d
+         LEFT JOIN clientes c ON c.id = d.cliente_id
+         LEFT JOIN presentaciones p ON p.id = d.presentacion_id
+         LEFT JOIN usuarios u ON u.id = d.registrado_por
+         LEFT JOIN ventas v ON v.id = d.venta_id
+         ${where}
+         ORDER BY d.creado_en DESC`,
+      params
+    );
+
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Devoluciones');
+
+    ws.columns = [
+      { header: 'Fecha', key: 'fecha', width: 12 },
+      { header: 'Cliente', key: 'cliente', width: 30 },
+      { header: 'DNI/RUC', key: 'dni', width: 14 },
+      { header: 'Producto', key: 'producto', width: 20 },
+      { header: 'Cantidad', key: 'cantidad', width: 10 },
+      { header: 'Origen', key: 'origen', width: 12 },
+      { header: 'Venta', key: 'venta_folio', width: 14 },
+      { header: 'Estado', key: 'estado', width: 10 },
+      { header: 'Registrado por', key: 'registrado_por', width: 20 },
+      { header: 'Notas', key: 'notas', width: 30 },
+    ];
+
+    ws.getRow(1).font = { bold: true };
+
+    for (const r of rows) {
+      ws.addRow({
+        fecha: r.fecha ? new Date(r.fecha).toLocaleDateString('es-PE') : '',
+        cliente: r.cliente || '',
+        dni: r.dni || '',
+        producto: r.producto || '',
+        cantidad: Number(r.cantidad),
+        origen: r.origen,
+        venta_folio: r.venta_folio || '',
+        estado: r.estado,
+        registrado_por: r.registrado_por || '',
+        notas: r.notas || '',
+      });
+    }
+
+    await sendXlsx(res, wb, `devoluciones_${fecha_inicio || 'todo'}_${fecha_fin || 'todo'}.xlsx`);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

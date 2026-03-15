@@ -52,3 +52,9 @@ export function obtenerEntregas(params) {
 }
 
 export const obtenerRentabilidad = (params) => api.get('/reportes/rentabilidad-clientes', { params }).then(r => r.data);
+
+export const exportarDevoluciones = (params) => api.get('/reportes/devoluciones', { params, responseType: 'blob' }).then(r => {
+  const url = window.URL.createObjectURL(new Blob([r.data]));
+  const a = document.createElement('a'); a.href = url; a.download = 'devoluciones.xlsx';
+  document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+});

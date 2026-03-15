@@ -15,5 +15,6 @@ router.get('/comprobantes', auth, ctrl.exportComprobantes);
 router.get('/entregas',             auth, ctrl.graficosEntregas);
 router.get('/frecuencia-compras',  auth, ctrl.frecuenciaCompras);
 router.get('/rentabilidad-clientes', auth, ctrl.rentabilidadClientes);
+router.get('/devoluciones',           auth, ctrl.exportDevoluciones);
 
 module.exports = router;
