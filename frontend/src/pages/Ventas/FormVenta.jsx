@@ -184,8 +184,8 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
     const cant = linea ? linea.cantidad : '1';
     updateLine(lineId, {
       tipo_linea: newTipo,
-      precio_unitario: newTipo === 'bonificacion' ? '0' : l.precio_unitario,
-      vacios_recibidos: newTipo === 'recarga' ? cant : '0',
+      precio_unitario: newTipo === 'bonificacion' ? '0' : linea?.precio_unitario || '',
+      vacios_recibidos: (newTipo === 'recarga' || newTipo === 'bonificacion') ? cant : '0',
     });
     fetchPrecio(lineId, cliente?.id, pres, newTipo);
   }
