@@ -434,28 +434,20 @@ db.query("ALTER TABLE caja_movimientos MODIFY COLUMN origen ENUM('directo','repa
 // Auto-migrate: drop trigger trg_venta_reparto_a_caja (reemplazado por app code en pedidosController.entregar)
 db.query('DROP TRIGGER IF EXISTS trg_venta_reparto_a_caja')
   .then(() => {
-    // Recalcular totales de caja_ruta abiertas (por si quedaron datos duplicados del trigger)
+    // Recalcular totales de caja_ruta abiertas desde movimientos
     return db.query(`
       UPDATE caja_ruta cr SET
         total_cobrado = (
           SELECT COALESCE(SUM(monto), 0) FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = cr.id AND tipo = 'cobro_venta'
+          WHERE caja_ruta_id = cr.id AND (tipo = 'cobro_venta' OR clasificacion = 'ingreso') AND anulado = 0
         ),
-        cobrado_efectivo = (
+        total_gastos = (
           SELECT COALESCE(SUM(monto), 0) FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = cr.id AND tipo = 'cobro_venta' AND metodo_pago = 'efectivo'
+          WHERE caja_ruta_id = cr.id AND clasificacion = 'egreso' AND anulado = 0
         ),
-        cobrado_transferencia = (
+        gasto_otros = (
           SELECT COALESCE(SUM(monto), 0) FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = cr.id AND tipo = 'cobro_venta' AND metodo_pago = 'transferencia'
-        ),
-        cobrado_tarjeta = (
-          SELECT COALESCE(SUM(monto), 0) FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = cr.id AND tipo = 'cobro_venta' AND metodo_pago = 'tarjeta'
-        ),
-        cobrado_credito = (
-          SELECT COALESCE(SUM(monto), 0) FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = cr.id AND tipo = 'cobro_venta' AND metodo_pago = 'credito'
+          WHERE caja_ruta_id = cr.id AND clasificacion = 'egreso' AND anulado = 0
         )
       WHERE cr.estado = 'abierta'
     `);
