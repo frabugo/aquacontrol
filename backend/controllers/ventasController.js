@@ -366,7 +366,7 @@ exports.create = async (req, res) => {
     }
 
     // Insert each detail line (trigger handles stock + stock_movimientos)
-    const TIPOS_VALIDOS = ['compra_bidon', 'recarga', 'prestamo', 'producto'];
+    const TIPOS_VALIDOS = ['compra_bidon', 'recarga', 'prestamo', 'producto', 'bonificacion'];
     for (const l of lineas) {
       if (!l.presentacion_id) {
         await conn.rollback();
@@ -379,7 +379,7 @@ exports.create = async (req, res) => {
         return res.status(400).json({ error: `tipo_linea inválido: ${l.tipo_linea}` });
       }
       const cantidad       = Number(l.cantidad) || 1;
-      const vacios         = Math.min(Number(l.vacios_recibidos) || 0, l.tipo_linea === 'recarga' ? cantidad : Infinity);
+      const vacios         = Math.min(Number(l.vacios_recibidos) || 0, (l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') ? cantidad : Infinity);
       const precioU        = Number(l.precio_unitario) || 0;
       const descL          = Number(l.descuento_linea) || 0;
       const subtotalLinea  = (precioU - descL) * cantidad;
@@ -410,7 +410,7 @@ exports.create = async (req, res) => {
     for (const l of lineas) {
       const cantidad = Number(l.cantidad) || 1;
       const vacios = Math.min(Number(l.vacios_recibidos) || 0, cantidad);
-      if (l.tipo_linea === 'recarga' && vacios > 0 && cliente_id) {
+      if ((l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') && vacios > 0 && cliente_id) {
         await conn.query(
           `INSERT INTO devoluciones (cliente_id, presentacion_id, cantidad, origen, venta_id, fecha, notas, registrado_por)
            VALUES (?, ?, ?, 'venta', ?, CURDATE(), ?, ?)`,
@@ -424,7 +424,7 @@ exports.create = async (req, res) => {
         // stock_movimientos lo registra el trigger trg_devolucion_a_lavado (no duplicar)
       }
       // Préstamo automático: vacíos faltantes en recargas retornables
-      if (l.tipo_linea === 'recarga' && cliente_id) {
+      if ((l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') && cliente_id) {
         const faltantes = cantidad - vacios;
         if (faltantes > 0) {
           const [[pres]] = await conn.query(
@@ -633,7 +633,7 @@ exports.cancelar = async (req, res) => {
             'UPDATE presentaciones SET stock_llenos = stock_llenos + ? WHERE id = ?',
             [l.cantidad, l.presentacion_id]
           );
-        } else if (l.tipo_linea === 'recarga') {
+        } else if (l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') {
           await conn.query(
             'UPDATE presentaciones SET stock_llenos = stock_llenos + ? WHERE id = ?',
             [l.cantidad, l.presentacion_id]

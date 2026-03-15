@@ -19,6 +19,7 @@ function today() {
 const TIPO_LINEA_RETORNABLE = [
   { value: 'recarga',      label: 'Recarga',         hint: 'Trae su bidon vacio' },
   { value: 'prestamo',     label: 'Prestamo',        hint: 'Le prestamos el bidon' },
+  { value: 'bonificacion',  label: 'Bonificación',   hint: 'Gratis' },
   { value: 'compra_bidon', label: 'Bidon completo',  hint: 'Compra el bidon' },
 ];
 const TIPO_LINEA_NORMAL = [

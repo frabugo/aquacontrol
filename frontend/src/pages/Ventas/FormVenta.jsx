@@ -11,6 +11,7 @@ const TIPO_LINEA_RETORNABLE = [
   { value: 'compra_bidon', label: 'Compra bidón',  hint: 'Venta definitiva' },
   { value: 'recarga',      label: 'Recarga',        hint: 'Trae vacío' },
   { value: 'prestamo',     label: 'Préstamo',       hint: 'Se lleva bidón' },
+  { value: 'bonificacion',  label: 'Bonificación',   hint: 'Gratis' },
 ];
 const TIPO_LINEA_NORMAL = [
   { value: 'producto', label: 'Producto', hint: 'Venta sin retorno' },
@@ -53,7 +54,7 @@ function defaultTipoForPres(pres) {
   return pres.es_retornable ? 'recarga' : 'producto';
 }
 
-const needsVacios = t => t === 'recarga';
+const needsVacios = t => t === 'recarga' || t === 'bonificacion';
 
 /* ── Componente ── */
 export default function FormVenta({ isOpen, onClose, onSaved }) {
@@ -182,6 +183,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
     const cant = linea ? linea.cantidad : '1';
     updateLine(lineId, {
       tipo_linea: newTipo,
+      precio_unitario: newTipo === 'bonificacion' ? '0' : l.precio_unitario,
       vacios_recibidos: newTipo === 'recarga' ? cant : '0',
     });
     fetchPrecio(lineId, cliente?.id, pres, newTipo);

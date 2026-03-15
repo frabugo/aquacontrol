@@ -267,7 +267,8 @@ exports.emitir = async (req, res) => {
     // Calcular subtotal, IGV y total por línea
     const factor = 1 + igvPct / 100;
 
-    const items = lineas.map((l, idx) => {
+    const lineasFacturables = lineas.filter(l => l.tipo_linea !== 'bonificacion');
+    const items = lineasFacturables.map((l, idx) => {
       const totalItem     = Number(l.subtotal);           // precio con IGV
       const valorItem     = +(totalItem / factor).toFixed(2); // sin IGV
       const igvItem       = +(totalItem - valorItem).toFixed(2);

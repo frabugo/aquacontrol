@@ -587,7 +587,7 @@ exports.entregar = async (req, res) => {
     }
 
     // Validar tipo_linea antes de insertar detalle
-    const TIPOS_VALIDOS = ['compra_bidon', 'recarga', 'prestamo', 'producto'];
+    const TIPOS_VALIDOS = ['compra_bidon', 'recarga', 'prestamo', 'producto', 'bonificacion'];
     for (const l of lineas) {
       const tipoLinea = l.tipo_linea || 'producto';
       if (!TIPOS_VALIDOS.includes(tipoLinea)) {

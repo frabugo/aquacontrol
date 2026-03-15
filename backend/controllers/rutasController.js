@@ -1158,7 +1158,7 @@ exports.ventaRapida = async (req, res) => {
     }
 
     // Validar tipo_linea
-    const TIPOS_VALIDOS_VR = ['compra_bidon', 'recarga', 'prestamo', 'producto'];
+    const TIPOS_VALIDOS_VR = ['compra_bidon', 'recarga', 'prestamo', 'producto', 'bonificacion'];
     for (const l of lineas) {
       const tipoLinea = l.tipo_linea || 'producto';
       if (!TIPOS_VALIDOS_VR.includes(tipoLinea)) {

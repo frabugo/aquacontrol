@@ -104,9 +104,10 @@ export default function VentaAlPaso() {
     setLineas(prev => prev.map((l, i) => {
       if (i !== idx) return l;
       const updated = { ...l, [field]: val };
-      if (field === 'tipo_linea' && val === 'recarga') {
+      if (field === 'tipo_linea' && (val === 'recarga' || val === 'bonificacion')) {
         updated.vacios_recibidos = updated.cantidad;
       }
+      if (field === 'tipo_linea' && val === 'bonificacion') { updated.precio_unitario = 0; }
       if (field === 'tipo_linea' && clienteId) {
         getPrecioSugerido({ cliente_id: clienteId, presentacion_id: updated.presentacion_id, tipo_linea: val })
           .then(r => { if (r.precio) setLineas(prev => prev.map((ll, j) => j === idx ? { ...ll, precio_unitario: Number(r.precio) } : ll)); })
@@ -301,6 +302,7 @@ export default function VentaAlPaso() {
                               <option value="recarga">Recarga</option>
                               <option value="compra_bidon">Compra bidón</option>
                               <option value="prestamo">Préstamo</option>
+                                <option value="bonificacion">Bonificación</option>
                             </select>
                           ) : (
                             <div className={`${inputCls} bg-slate-50 text-slate-600`}>Producto</div>
