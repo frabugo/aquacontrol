@@ -880,10 +880,10 @@ exports.registrarGasto = async (req, res) => {
         `UPDATE caja_ruta SET
            gasto_otros = gasto_otros + ?,
            total_gastos = total_gastos + ?,
-           neto_a_entregar = total_cobrado - (total_gastos + ?),
+           neto_a_entregar = total_cobrado - total_gastos,
            desc_gastos = CONCAT(COALESCE(desc_gastos,''), ?, '\n')
          WHERE id = ?`,
-        [montoNum, montoNum, montoNum,
+        [montoNum, montoNum,
          `S/${montoNum.toFixed(2)} - ${desc}`, caja.id]
       );
     } else {
@@ -1739,17 +1739,17 @@ exports.anularMovimientoRuta = async (req, res) => {
         `UPDATE caja_ruta SET
            gasto_otros = GREATEST(0, gasto_otros - ?),
            total_gastos = GREATEST(0, total_gastos - ?),
-           neto_a_entregar = total_cobrado - GREATEST(0, total_gastos - ?)
+           neto_a_entregar = total_cobrado - total_gastos
          WHERE id = ?`,
-        [montoNum, montoNum, montoNum, mov.caja_ruta_id]
+        [montoNum, montoNum, mov.caja_ruta_id]
       );
     } else {
       await conn.query(
         `UPDATE caja_ruta SET
            total_cobrado = GREATEST(0, total_cobrado - ?),
-           neto_a_entregar = GREATEST(0, total_cobrado - ?) - total_gastos
+           neto_a_entregar = total_cobrado - total_gastos
          WHERE id = ?`,
-        [montoNum, montoNum, mov.caja_ruta_id]
+        [montoNum, mov.caja_ruta_id]
       );
     }
 

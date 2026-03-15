@@ -16,9 +16,11 @@ function formatHora(dt) {
 }
 
 const TIPO_BADGE = {
-  cobro_venta: { label: 'Cobro',  cls: 'bg-green-100 text-green-700',  sign: '+' },
-  gasto:       { label: 'Gasto',  cls: 'bg-red-100 text-red-700',      sign: '-' },
-  ajuste:      { label: 'Ajuste', cls: 'bg-yellow-100 text-yellow-700', sign: '' },
+  cobro_venta: { label: 'Cobro',   cls: 'bg-green-100 text-green-700',  sign: '+' },
+  ingreso:     { label: 'Ingreso', cls: 'bg-emerald-100 text-emerald-700', sign: '+' },
+  egreso:      { label: 'Egreso',  cls: 'bg-red-100 text-red-700',      sign: '-' },
+  gasto:       { label: 'Gasto',   cls: 'bg-red-100 text-red-700',      sign: '-' },
+  ajuste:      { label: 'Ajuste',  cls: 'bg-yellow-100 text-yellow-700', sign: '' },
 };
 
 
