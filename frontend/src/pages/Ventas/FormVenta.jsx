@@ -207,8 +207,9 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
     setError('');
     if (!cliente) return setError('Se requiere seleccionar un cliente');
     if (lineas.some(l => !l.presentacion)) return setError('Cada línea requiere un producto');
-    if (totalCalc <= 0) return setError('El total debe ser mayor a 0');
-    if (pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(2)} por asignar`);
+    const esSoloBonificacion = lineas.every(l => l.tipo_linea === 'bonificacion');
+    if (totalCalc <= 0 && !esSoloBonificacion) return setError('El total debe ser mayor a 0');
+    if (totalCalc > 0 && pendiente > 0.02) return setError(`Faltan S/ ${pendiente.toFixed(2)} por asignar`);
     if (Number(pagos.credito) > 0 && !cliente) return setError('Se requiere un cliente para registrar crédito');
 
     setLoading(true);
@@ -604,7 +605,7 @@ export default function FormVenta({ isOpen, onClose, onSaved }) {
               className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-100 transition">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || totalCalc <= 0 || !cubierto}
+            <button type="submit" disabled={loading || (totalCalc <= 0 && !lineas.every(l => l.tipo_linea === 'bonificacion')) || (totalCalc > 0 && !cubierto)}
               className="px-6 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition flex items-center gap-2">
               {loading && (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
