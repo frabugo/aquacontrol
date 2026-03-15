@@ -137,6 +137,7 @@ exports.update = async (req, res) => {
 
     if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es requerido' });
 
+    const ruc_dni = _ruc_dni2 || dni2;
     const [result] = await db.query(
       `UPDATE clientes SET
          nombre=?, ruc_dni=?, telefono=?, direccion=?, latitud=?, longitud=?, tipo=?,
