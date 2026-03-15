@@ -904,6 +904,18 @@ exports.registrarGasto = async (req, res) => {
       [caja.id, tipoMov, clasificacion, categoria_id || null, metodo_pago || 'efectivo', montoNum, desc, req.user.id]
     );
 
+    // Registrar en caja principal como pendiente
+    const [[cajaPlanta]] = await conn.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (cajaPlanta) {
+      await conn.query(
+        `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, registrado_por, origen, estado_entrega, caja_ruta_id, categoria_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'repartidor', 'pendiente', ?, ?)`,
+        [cajaPlanta.id, tipoMov, metodo_pago || 'efectivo', montoNum, desc, req.user.id, caja.id, categoria_id || null]
+      );
+    }
+
     await conn.commit();
     conn.release();
     res.json({ ok: true });
