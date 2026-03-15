@@ -99,12 +99,12 @@ exports.miRuta = async (req, res) => {
       [ruta.id]
     );
 
-    // Cobros dinámicos desde caja_ruta_movimientos (para métodos nuevos tipo BCP/Yape)
+    // Cobros dinámicos desde caja_ruta_movimientos (todos los ingresos por método)
     if (ruta.caja_ruta_id) {
       const [cobros] = await db.query(
         `SELECT metodo_pago, SUM(monto) AS total
            FROM caja_ruta_movimientos
-          WHERE caja_ruta_id = ? AND tipo = 'cobro_venta'
+          WHERE caja_ruta_id = ? AND (tipo = 'cobro_venta' OR clasificacion = 'ingreso') AND anulado = 0
           GROUP BY metodo_pago`,
         [ruta.caja_ruta_id]
       );
