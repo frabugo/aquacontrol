@@ -330,7 +330,7 @@ export default function MiCaja() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-left">
-                  {['Hora', 'Tipo', 'Método', 'Descripción', 'Monto'].map(h => (
+                  {['Hora', 'Tipo', 'Categoría', 'Método', 'Descripción', 'Registrado por', 'Monto'].map(h => (
                     <th key={h} className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -339,7 +339,7 @@ export default function MiCaja() {
                 {movLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <tr key={i}>
-                      {[1,2,3,4,5].map(j => (
+                      {[1,2,3,4,5,6,7].map(j => (
                         <td key={j} className="px-4 py-3">
                           <div className="h-4 bg-slate-100 animate-pulse rounded" style={{ width: j === 4 ? '140px' : '60px' }} />
                         </td>
@@ -348,7 +348,7 @@ export default function MiCaja() {
                   ))
                 ) : movimientos.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400 text-sm">
+                    <td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-sm">
                       Sin movimientos registrados
                     </td>
                   </tr>
@@ -364,7 +364,7 @@ export default function MiCaja() {
                                      : tipo.sign === '-' ? 'text-red-600 font-semibold'
                                      : 'text-slate-700';
                     return (
-                      <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={m.id} className={`transition-colors ${m.anulado ? 'opacity-50 bg-slate-50' : 'hover:bg-slate-50'}`}>
                         <td className="px-4 py-3 text-slate-500 whitespace-nowrap tabular-nums text-xs">
                           {formatHora(m.fecha_hora)}
                         </td>
@@ -372,6 +372,9 @@ export default function MiCaja() {
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${tipo.cls}`}>
                             {tipo.label}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                          {m.categoria_nombre || '—'}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${metodo.cls}`}>
@@ -386,7 +389,10 @@ export default function MiCaja() {
                             </div>
                           )}
                         </td>
-                        <td className={`px-4 py-3 tabular-nums text-right whitespace-nowrap ${montoColor}`}>
+                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                          {m.registrado_por_nombre || '—'}
+                        </td>
+                        <td className={`px-4 py-3 tabular-nums text-right whitespace-nowrap ${m.anulado ? 'text-slate-400 line-through' : montoColor}`}>
                           {tipo.sign}{formatS(m.monto)}
                         </td>
                       </tr>
