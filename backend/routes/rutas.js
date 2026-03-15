@@ -27,4 +27,6 @@ router.put('/:id/anular-venta-al-paso/:ventaId', auth, ctrl.anularVentaAlPaso);
 router.post('/:id/cobrar-deuda',    auth, ctrl.cobrarDeuda);
 router.get('/:id/cobros-deuda',     auth, ctrl.getCobrosDeuda);
 
+router.put('/:id/movimientos/:movId/anular', auth, ctrl.anularMovimientoRuta);
+
 module.exports = router;

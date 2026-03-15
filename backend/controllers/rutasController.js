@@ -1703,3 +1703,66 @@ exports.getVentasAlPaso = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+/* == PUT /api/rutas/:id/movimientos/:movId/anular == */
+exports.anularMovimientoRuta = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[mov]] = await conn.query(
+      'SELECT crm.*, cr.ruta_id, cr.estado AS caja_estado FROM caja_ruta_movimientos crm JOIN caja_ruta cr ON cr.id = crm.caja_ruta_id WHERE crm.id = ? FOR UPDATE',
+      [req.params.movId]
+    );
+    if (!mov) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Movimiento no encontrado' }); }
+    if (mov.anulado) { await conn.rollback(); conn.release(); return res.status(400).json({ error: 'El movimiento ya est\u00e1 anulado' }); }
+    if (mov.caja_estado !== 'abierta') { await conn.rollback(); conn.release(); return res.status(400).json({ error: 'La caja no est\u00e1 abierta' }); }
+    // Solo movimientos manuales (ingreso/egreso sin venta)
+    if (mov.venta_id) { await conn.rollback(); conn.release(); return res.status(400).json({ error: 'No se puede anular movimientos de venta desde aqu\u00ed' }); }
+
+    const montoNum = Number(mov.monto);
+
+    // Marcar como anulado
+    await conn.query(
+      'UPDATE caja_ruta_movimientos SET anulado = 1, anulado_por = ?, anulado_en = NOW() WHERE id = ?',
+      [req.user.id, mov.id]
+    );
+
+    // Revertir totales de caja_ruta
+    if (mov.clasificacion === 'egreso' || mov.tipo === 'egreso' || mov.tipo === 'gasto') {
+      await conn.query(
+        `UPDATE caja_ruta SET
+           gasto_otros = GREATEST(0, gasto_otros - ?),
+           total_gastos = GREATEST(0, total_gastos - ?),
+           neto_a_entregar = total_cobrado - GREATEST(0, total_gastos - ?)
+         WHERE id = ?`,
+        [montoNum, montoNum, montoNum, mov.caja_ruta_id]
+      );
+    } else {
+      await conn.query(
+        `UPDATE caja_ruta SET
+           total_cobrado = GREATEST(0, total_cobrado - ?),
+           neto_a_entregar = GREATEST(0, total_cobrado - ?) - total_gastos
+         WHERE id = ?`,
+        [montoNum, montoNum, mov.caja_ruta_id]
+      );
+    }
+
+    // Anular tambien en caja principal si existe
+    await conn.query(
+      `UPDATE caja_movimientos SET anulado = 1, anulado_por = ?, anulado_en = NOW()
+       WHERE caja_ruta_id = ? AND descripcion = ? AND monto = ? AND anulado = 0
+       ORDER BY id DESC LIMIT 1`,
+      [req.user.id, mov.caja_ruta_id, mov.descripcion, montoNum]
+    );
+
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
+    res.status(500).json({ error: err.message });
+  }
+};

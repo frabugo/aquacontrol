@@ -64,6 +64,16 @@ export default function MiCaja() {
     api.get('/config/categorias-caja').then(r => setCategorias(Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [])).catch(() => []);
   }, []);
 
+  async function handleAnularMov(movId) {
+    if (!window.confirm('Anular este movimiento?')) return;
+    try {
+      await anularMovimientoRuta(ruta.id, movId);
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al anular');
+    }
+  }
+
   async function handleGasto(e) {
     e.preventDefault();
     if (!montoGasto || Number(montoGasto) <= 0) return;

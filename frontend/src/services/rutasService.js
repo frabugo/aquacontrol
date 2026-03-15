@@ -30,3 +30,5 @@ export default {
   visitaPlanta, getVisitas, getStockVehiculo, ventaRapida, getVentasAlPaso, anularVentaAlPaso,
   cobrarDeuda, getCobrosDeuda,
 };
+
+export const anularMovimientoRuta = (rutaId, movId) => api.put(`/rutas/${rutaId}/movimientos/${movId}/anular`).then(r => r.data);
