@@ -181,8 +181,8 @@ export default function MiCaja() {
               );
             })}
             <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold">
-              <span className="text-slate-700">Total cobrado</span>
-              <span className="text-green-700">{formatS(ruta.total_cobrado)}</span>
+              <span className="text-slate-700">Total en caja</span>
+              <span className="text-green-700">{formatS(metodos.reduce((s, m) => s + (Number(ruta[`cobrado_${m.nombre}`]) || 0), 0))}</span>
             </div>
           </div>
         </div>
