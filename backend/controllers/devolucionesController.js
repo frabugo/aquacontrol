@@ -103,6 +103,15 @@ exports.create = async (req, res) => {
 
     await conn.beginTransaction();
 
+    // Validar caja abierta
+    const [[cajaAbiertaCheck]] = await conn.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (!cajaAbiertaCheck) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ error: 'No hay caja abierta. Abre la caja antes de registrar devoluciones.' });
+    }
+
     // Validar bidones_prestados del cliente con lock
     const [[cliente]] = await conn.query(
       'SELECT bidones_prestados FROM clientes WHERE id = ? FOR UPDATE',

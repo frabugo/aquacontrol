@@ -65,6 +65,14 @@ exports.list = async (req, res) => {
 exports.create = async (req, res) => {
   const conn = await db.getConnection();
   try {
+    // Validar caja abierta
+    const [[cajaCheck]] = await db.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (!cajaCheck) {
+      return res.status(400).json({ error: 'No hay caja abierta. Abre la caja antes de registrar lavados.' });
+    }
+
     const { insumo_id, presentacion_id, cantidad, notas } = req.body;
     if (!insumo_id && !presentacion_id) { conn.release(); return res.status(400).json({ error: 'insumo_id o presentacion_id requerido' }); }
     if (!cantidad || Number(cantidad) <= 0) { conn.release(); return res.status(400).json({ error: 'cantidad debe ser mayor a 0' }); }

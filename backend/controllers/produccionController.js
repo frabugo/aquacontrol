@@ -46,6 +46,14 @@ exports.list = async (req, res) => {
 exports.create = async (req, res) => {
   const conn = await db.getConnection();
   try {
+    // Validar caja abierta
+    const [[cajaCheck]] = await db.query(
+      "SELECT id FROM cajas WHERE estado IN ('abierta','reabierta') ORDER BY fecha DESC LIMIT 1"
+    );
+    if (!cajaCheck) {
+      return res.status(400).json({ error: 'No hay caja abierta. Abre la caja antes de registrar produccion.' });
+    }
+
     const { presentacion_id, turno, cantidad_producida = 0, notas } = req.body;
     if (!presentacion_id) { conn.release(); return res.status(400).json({ error: 'presentacion_id requerido' }); }
     if (!turno)           { conn.release(); return res.status(400).json({ error: 'turno requerido' }); }
