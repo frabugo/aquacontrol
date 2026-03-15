@@ -317,23 +317,7 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                         </div>
                       </div>
                     )}
-                    {modoGarantia && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Monto a devolver (S/) - Garantia disponible: S/{Number(cliente.saldo_garantia).toFixed(2)}</label>
-                          <input type="number" min="0.01" step="0.01" max={Number(cliente.saldo_garantia)} value={montoGarantia}
-                            onChange={e => setMontoGarantia(e.target.value)} className={inputCls} placeholder="0.00" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Metodo de pago</label>
-                          <select value={metodoGarantia} onChange={e => setMetodoGarantia(e.target.value)} className={inputCls}>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="yape">Yape</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-6 text-center text-sm text-slate-400">
@@ -408,6 +392,32 @@ function NuevaDevolucionModal({ isOpen, onClose, onSaved }) {
                   <label className="block text-xs font-medium text-slate-600 mb-1">Notas (opcional)</label>
                   <input className={inputCls} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones..." />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Devolver garantia - siempre visible si tiene saldo */}
+          {cliente && Number(cliente.saldo_garantia) > 0 && !modoGarantia && (
+            <button type="button" onClick={() => { setModoGarantia(true); setModoManual(false); setModoPerdido(false); setSelected(null); }}
+              className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+              Devolver garantia (S/{Number(cliente.saldo_garantia).toFixed(2)})
+            </button>
+          )}
+          {cliente && modoGarantia && (
+            <div className="space-y-3 bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <p className="text-sm font-semibold text-purple-800">Devolver garantia</p>
+              <div>
+                <label className="block text-xs font-medium text-purple-700 mb-1">Monto a devolver (S/) - Disponible: S/{Number(cliente.saldo_garantia).toFixed(2)}</label>
+                <input type="number" min="0.01" step="0.01" max={Number(cliente.saldo_garantia)} value={montoGarantia}
+                  onChange={e => setMontoGarantia(e.target.value)} className={inputCls} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-purple-700 mb-1">Metodo de pago</label>
+                <select value={metodoGarantia} onChange={e => setMetodoGarantia(e.target.value)} className={inputCls}>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="yape">Yape</option>
+                </select>
               </div>
             </div>
           )}
