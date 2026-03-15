@@ -1193,12 +1193,13 @@ exports.ventaRapida = async (req, res) => {
     const total = subtotal;
 
     // Validar pagos cubren total
-    if (pagos.length === 0 && total > 0) {
+    const esSoloBonifVR = lineas.every(l => (l.tipo_linea || 'producto') === 'bonificacion');
+    if (pagos.length === 0 && total > 0 && !esSoloBonifVR) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: 'Selecciona al menos un método de pago' });
     }
     const sumPagos = pagos.reduce((s, p) => s + p.monto, 0);
-    if (total > 0 && Math.abs(sumPagos - total) > 0.02) {
+    if (total > 0 && !esSoloBonifVR && Math.abs(sumPagos - total) > 0.02) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: `Suma de pagos (S/ ${sumPagos.toFixed(2)}) no coincide con total (S/ ${total.toFixed(2)})` });
     }
@@ -1305,11 +1306,12 @@ exports.ventaRapida = async (req, res) => {
       const sub      = precioU * cantidad;
 
       const tipoLineaVR = l.tipo_linea || 'producto';
+      const garantiaVR = (tipoLineaVR === 'prestamo' || (tipoLineaVR === 'bonificacion' && Number(l.garantia) > 0) || (tipoLineaVR === 'recarga' && Number(l.garantia) > 0)) ? (Number(l.garantia) || 0) : 0;
       await conn.query(
         `INSERT INTO venta_detalle
-           (venta_id, presentacion_id, tipo_linea, cantidad, vacios_recibidos, precio_unitario, subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [ventaId, l.presentacion_id, tipoLineaVR, cantidad, vacios, precioU, sub]
+           (venta_id, presentacion_id, tipo_linea, cantidad, vacios_recibidos, precio_unitario, subtotal, garantia)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [ventaId, l.presentacion_id, tipoLineaVR, cantidad, vacios, precioU, sub, garantiaVR]
       );
 
       // Trazabilidad stock
@@ -1346,7 +1348,7 @@ exports.ventaRapida = async (req, res) => {
       let totalPrestamo = 0;
       for (const l of lineas) {
         const tipoLinea = l.tipo_linea || 'producto';
-        if (tipoLinea !== 'recarga') continue;
+        if (tipoLinea !== 'recarga' && tipoLinea !== 'bonificacion') continue;
         const cantidad = Number(l.cantidad) || 1;
         const vacios   = Math.min(Number(l.vacios_recibidos) || 0, cantidad);
         const faltantes = cantidad - vacios;
@@ -1365,6 +1367,37 @@ exports.ventaRapida = async (req, res) => {
           [totalPrestamo, cliente_id]
         );
       }
+    }
+
+    // Garantías
+    let totalGarantiaVR = 0;
+    let garantiaMetodoVR = 'efectivo';
+    for (const l of lineas) {
+      if (Number(l.garantia) > 0) {
+        totalGarantiaVR += Number(l.garantia);
+        if (l.garantia_metodo) garantiaMetodoVR = l.garantia_metodo;
+      }
+    }
+    if (totalGarantiaVR > 0 && cliente_id) {
+      await conn.query(
+        'UPDATE clientes SET saldo_garantia = saldo_garantia + ? WHERE id = ?',
+        [totalGarantiaVR, cliente_id]
+      );
+      const catGarVR = await getCategoriaId('Garantía recibida', conn);
+      const [[cliNomVR]] = await conn.query('SELECT nombre FROM clientes WHERE id = ?', [cliente_id]);
+      await conn.query(
+        `INSERT INTO caja_ruta_movimientos (caja_ruta_id, venta_id, tipo, clasificacion, categoria_id, metodo_pago, monto, descripcion, registrado_por)
+         VALUES (?, ?, 'ingreso', 'ingreso', ?, ?, ?, ?, ?)`,
+        [cajaRuta.id, ventaId, catGarVR, garantiaMetodoVR, totalGarantiaVR,
+         `Garantía venta #${ventaId} - ${cliNomVR?.nombre || 'Cliente'}`, req.user.id]
+      );
+      await conn.query(
+        `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, origen, estado_entrega, caja_ruta_id, categoria_id)
+         VALUES (?, 'ingreso', ?, ?, ?, ?, ?, ?, 'repartidor', 'pendiente', ?, ?)`,
+        [cajaPlanta.id, garantiaMetodoVR, totalGarantiaVR,
+         `Garantía venta #${ventaId} - ${cliNomVR?.nombre || 'Cliente'}`,
+         cliente_id, ventaId, req.user.id, cajaRuta.id, catGarVR]
+      );
     }
 
     // Deuda del cliente

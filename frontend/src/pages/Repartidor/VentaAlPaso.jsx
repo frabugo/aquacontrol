@@ -85,6 +85,8 @@ export default function VentaAlPaso() {
       cantidad: 1,
       vacios_recibidos: 0,
       precio_unitario: Number(item.precio_base) || '',
+      garantia: '',
+      garantia_metodo: 'efectivo',
       max_disponible: getDisponibles(item),
     };
     const idx = lineas.length;
@@ -143,6 +145,8 @@ export default function VentaAlPaso() {
           cantidad: Number(l.cantidad) || 1,
           vacios_recibidos: Number(l.vacios_recibidos) || 0,
           precio_unitario: Number(l.precio_unitario) || 0,
+          garantia: Number(l.garantia) || 0,
+          garantia_metodo: l.garantia_metodo || 'efectivo',
         })),
         pagos: pagosArray,
         cliente_id: clienteId || null,
@@ -346,12 +350,28 @@ export default function VentaAlPaso() {
                       <p className="text-right text-xs text-slate-400 mt-1.5 font-semibold">
                         Subtotal: S/ {((Number(l.precio_unitario) || 0) * (Number(l.cantidad) || 0)).toFixed(2)}
                       </p>
+                      {(l.tipo_linea === 'prestamo' || (l.tipo_linea === 'bonificacion' && Number(l.cantidad) > Number(l.vacios_recibidos || 0)) || (l.tipo_linea === 'recarga' && Number(l.cantidad) > Number(l.vacios_recibidos || 0))) && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-amber-600">Garantia</span>
+                          <input type="number" min="0" step="0.01"
+                            className="w-20 px-2 py-1 text-xs border border-amber-300 rounded-lg text-right bg-amber-50"
+                            value={l.garantia} onChange={e => updateLinea(i, 'garantia', e.target.value)} placeholder="0" />
+                          <select value={l.garantia_metodo} onChange={e => updateLinea(i, 'garantia_metodo', e.target.value)}
+                            className="px-2 py-1 text-xs border border-amber-300 rounded-lg bg-amber-50 text-amber-700">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="yape">Yape</option>
+                            <option value="transferencia">Transferencia</option>
+                          </select>
+                        </div>
+                      )}
+                      <p className="hidden">
+                      </p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <p className="text-lg font-bold text-slate-800">Total: S/ {totalCalc.toFixed(2)}</p>
-                  <button onClick={() => setPaso(2)} disabled={totalCalc <= 0 || lineas.some(l => !Number(l.precio_unitario))}
+                  <button onClick={() => setPaso(2)} disabled={(totalCalc <= 0 && !lineas.every(l => l.tipo_linea === 'bonificacion')) || (totalCalc > 0 && lineas.some(l => l.tipo_linea !== 'bonificacion' && !Number(l.precio_unitario)))}
                     className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition">
                     Siguiente: Cobro
                   </button>
