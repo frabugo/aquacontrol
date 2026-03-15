@@ -9,3 +9,6 @@ export const cancelarVenta      = (id)     => api.put(`${BASE}/${id}/cancelar`).
 export const getPrecioSugerido  = (params) => api.get(`${BASE}/precio-sugerido`, { params }).then(r => r.data);
 export const resumenDia         = ()       => api.get(`${BASE}/resumen-dia`).then(r => r.data);
 export const getPrediccion     = (params) => api.get(`${BASE}/prediccion`, { params }).then(r => r.data);
+
+export const getBonificaciones       = (params) => api.get('/ventas/bonificaciones', { params }).then(r => r.data);
+export const getBonificacionesDetalle = (clienteId, params) => api.get(`/ventas/bonificaciones/${clienteId}`, { params }).then(r => r.data);

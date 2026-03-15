@@ -916,3 +916,67 @@ exports.resumenDia = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+/* == GET /api/ventas/bonificaciones == */
+exports.bonificaciones = async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+    const fi = fecha_inicio || new Date(Date.now() - 30*86400000).toISOString().slice(0, 10);
+    const ff = fecha_fin || new Date().toISOString().slice(0, 10);
+
+    // Resumen por cliente
+    const [rows] = await db.query(
+      `SELECT c.id AS cliente_id, c.nombre AS cliente_nombre, c.ruc_dni AS dni, c.tipo,
+              SUM(vd.cantidad) AS total_bonificaciones,
+              COUNT(DISTINCT v.id) AS total_ventas,
+              GROUP_CONCAT(DISTINCT p.nombre SEPARATOR ', ') AS productos
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN clientes c ON c.id = v.cliente_id
+         LEFT JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE vd.tipo_linea = 'bonificacion'
+           AND v.estado != 'cancelada'
+           AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?
+         GROUP BY c.id
+         ORDER BY total_bonificaciones DESC`,
+      [fi, ff]
+    );
+
+    const total_general = rows.reduce((s, r) => s + Number(r.total_bonificaciones), 0);
+
+    res.json({ data: rows, total_general, fecha_inicio: fi, fecha_fin: ff });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/* == GET /api/ventas/bonificaciones/:clienteId == */
+exports.bonificacionesDetalle = async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+    const fi = fecha_inicio || new Date(Date.now() - 30*86400000).toISOString().slice(0, 10);
+    const ff = fecha_fin || new Date().toISOString().slice(0, 10);
+
+    const [rows] = await db.query(
+      `SELECT v.id AS venta_id, v.folio, v.fecha_hora, v.origen,
+              vd.cantidad, vd.vacios_recibidos,
+              p.nombre AS presentacion_nombre,
+              u.nombre AS vendedor_nombre
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         LEFT JOIN presentaciones p ON p.id = vd.presentacion_id
+         LEFT JOIN usuarios u ON u.id = v.vendedor_id
+         WHERE vd.tipo_linea = 'bonificacion'
+           AND v.cliente_id = ?
+           AND v.estado != 'cancelada'
+           AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?
+         ORDER BY v.fecha_hora DESC`,
+      [req.params.clienteId, fi, ff]
+    );
+
+    res.json({ data: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

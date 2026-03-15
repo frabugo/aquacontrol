@@ -29,6 +29,7 @@ const ComparadorPrecios = lazy(() => import('./pages/Proveedores/ComparadorPreci
 const Recetas           = lazy(() => import('./pages/Recetas'));
 const Lavado            = lazy(() => import('./pages/Lavado'));
 const Comprobantes      = lazy(() => import('./pages/Comprobantes'));
+const Bonificaciones    = lazy(() => import('./pages/Ventas/Bonificaciones'));
 const Devoluciones      = lazy(() => import('./pages/Devoluciones'));
 const PrediccionVentas  = lazy(() => import('./pages/Ventas/PrediccionVentas'));
 const Deudas            = lazy(() => import('./pages/Deudas'));
@@ -111,6 +112,9 @@ export default function App() {
           } />
           <Route path="/ventas/prediccion" element={
             <PrivateRoute><PrediccionVentas /></PrivateRoute>
+          } />
+          <Route path="/ventas/bonificaciones" element={
+            <PrivateRoute><Bonificaciones /></PrivateRoute>
           } />
           <Route path="/deudas" element={
             <PrivateRoute><Deudas /></PrivateRoute>
