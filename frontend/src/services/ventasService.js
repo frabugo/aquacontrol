@@ -12,3 +12,5 @@ export const getPrediccion     = (params) => api.get(`${BASE}/prediccion`, { par
 
 export const getBonificaciones       = (params) => api.get('/ventas/bonificaciones', { params }).then(r => r.data);
 export const getBonificacionesDetalle = (clienteId, params) => api.get(`/ventas/bonificaciones/${clienteId}`, { params }).then(r => r.data);
+
+export const getBonificacionesAnalytics = (params) => api.get('/ventas/bonificaciones/analytics', { params }).then(r => r.data);

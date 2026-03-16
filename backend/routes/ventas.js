@@ -5,6 +5,7 @@ const auth    = require('../middleware/authMiddleware');
 const ctrl    = require('../controllers/ventasController');
 
 router.get ('/bonificaciones',         auth, ctrl.bonificaciones);
+router.get ('/bonificaciones/analytics',   auth, ctrl.bonificacionesAnalytics);
 router.get ('/bonificaciones/:clienteId', auth, ctrl.bonificacionesDetalle);
 router.get ('/precio-sugerido', auth, ctrl.getPrecioSugerido);
 router.get ('/prediccion',      auth, ctrl.prediccion);

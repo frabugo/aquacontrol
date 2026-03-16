@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { getBonificaciones, getBonificacionesDetalle } from '../../services/ventasService';
+import BonificacionesAnalytics from './BonificacionesAnalytics';
 
 function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function hace30() { const d = new Date(); d.setDate(d.getDate()-30); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -10,6 +11,7 @@ function fmtHora(dt) { if (!dt) return ''; return new Date(dt).toLocaleTimeStrin
 const inputCls = 'px-3 py-1.5 text-sm border border-slate-300 rounded-lg';
 
 export default function Bonificaciones() {
+  const [tab, setTab] = useState('listado');
   const [fi, setFi] = useState(hace30());
   const [ff, setFf] = useState(today());
   const [data, setData] = useState([]);
@@ -111,7 +113,8 @@ export default function Bonificaciones() {
           </table>
         </div>
 
-        {/* Modal detalle */}
+
+      {/* Modal detalle */}
         {detalle && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDetalle(null)}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>

@@ -1013,3 +1013,113 @@ exports.bonificacionesDetalle = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/* == GET /api/ventas/bonificaciones/analytics == */
+exports.bonificacionesAnalytics = async (req, res) => {
+  try {
+    const { fecha_inicio, fecha_fin } = req.query;
+    const fi = fecha_inicio || new Date(Date.now() - 30*86400000).toISOString().slice(0, 10);
+    const ff = fecha_fin || new Date().toISOString().slice(0, 10);
+
+    // 1. Ratio bonificacion/venta por cliente
+    const [ratio] = await db.query(
+      `SELECT c.id AS cliente_id, c.nombre,
+              COALESCE(SUM(CASE WHEN vd.tipo_linea = 'bonificacion' THEN vd.cantidad ELSE 0 END), 0) AS bonificados,
+              COALESCE(SUM(CASE WHEN vd.tipo_linea != 'bonificacion' THEN vd.cantidad ELSE 0 END), 0) AS vendidos,
+              COALESCE(SUM(CASE WHEN vd.tipo_linea != 'bonificacion' THEN vd.subtotal ELSE 0 END), 0) AS facturado,
+              COUNT(DISTINCT v.id) AS total_ventas
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN clientes c ON c.id = v.cliente_id
+         WHERE v.estado != 'cancelada'
+           AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?
+         GROUP BY c.id
+         HAVING bonificados > 0
+         ORDER BY bonificados DESC`,
+      [fi, ff]
+    );
+
+    const ratioData = ratio.map(r => ({
+      ...r,
+      bonificados: Number(r.bonificados),
+      vendidos: Number(r.vendidos),
+      facturado: Number(r.facturado),
+      ratio_pct: Number(r.vendidos) > 0 ? Math.round(Number(r.bonificados) / Number(r.vendidos) * 100 * 10) / 10 : 0,
+      cada_cuantos: Number(r.vendidos) > 0 ? Math.round(Number(r.vendidos) / Number(r.bonificados) * 10) / 10 : 0,
+    }));
+
+    // 2. Tendencia mensual
+    const [tendencia] = await db.query(
+      `SELECT DATE_FORMAT(v.fecha_hora, '%Y-%m') AS mes,
+              SUM(CASE WHEN vd.tipo_linea = 'bonificacion' THEN vd.cantidad ELSE 0 END) AS bonificados,
+              SUM(CASE WHEN vd.tipo_linea != 'bonificacion' THEN vd.cantidad ELSE 0 END) AS vendidos,
+              SUM(CASE WHEN vd.tipo_linea != 'bonificacion' THEN vd.subtotal ELSE 0 END) AS facturado
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         WHERE v.estado != 'cancelada'
+           AND v.fecha_hora >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+         GROUP BY DATE_FORMAT(v.fecha_hora, '%Y-%m')
+         ORDER BY mes ASC`,
+      []
+    );
+
+    // 3. Por producto
+    const [porProducto] = await db.query(
+      `SELECT p.nombre AS producto,
+              SUM(vd.cantidad) AS bonificados,
+              COUNT(DISTINCT v.id) AS ventas
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE vd.tipo_linea = 'bonificacion'
+           AND v.estado != 'cancelada'
+           AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?
+         GROUP BY p.id
+         ORDER BY bonificados DESC`,
+      [fi, ff]
+    );
+
+    // 4. Totales
+    const totalBonif = ratioData.reduce((s, r) => s + r.bonificados, 0);
+    const totalVendidos = ratioData.reduce((s, r) => s + r.vendidos, 0);
+    const totalFacturado = ratioData.reduce((s, r) => s + r.facturado, 0);
+
+    // 5. Costo estimado (usar precio_base de cada presentacion)
+    const [[costoBonif]] = await db.query(
+      `SELECT COALESCE(SUM(vd.cantidad * p.precio_base), 0) AS costo_bonificaciones
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE vd.tipo_linea = 'bonificacion'
+           AND v.estado != 'cancelada'
+           AND DATE(v.fecha_hora) >= ? AND DATE(v.fecha_hora) <= ?`,
+      [fi, ff]
+    );
+
+    res.json({
+      periodo: { inicio: fi, fin: ff },
+      totales: {
+        bonificados: totalBonif,
+        vendidos: totalVendidos,
+        facturado: totalFacturado,
+        costo_bonificaciones: Number(costoBonif.costo_bonificaciones),
+        ratio_global_pct: totalVendidos > 0 ? Math.round(totalBonif / totalVendidos * 100 * 10) / 10 : 0,
+        rentabilidad: totalFacturado - Number(costoBonif.costo_bonificaciones),
+      },
+      ratio_por_cliente: ratioData,
+      tendencia_mensual: tendencia.map(t => ({
+        mes: t.mes,
+        bonificados: Number(t.bonificados),
+        vendidos: Number(t.vendidos),
+        facturado: Number(t.facturado),
+      })),
+      por_producto: porProducto.map(p => ({
+        producto: p.producto,
+        bonificados: Number(p.bonificados),
+        ventas: Number(p.ventas),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
