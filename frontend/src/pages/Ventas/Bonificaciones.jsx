@@ -57,6 +57,21 @@ export default function Bonificaciones() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex bg-slate-100 rounded-xl p-1 w-fit">
+          <button onClick={() => setTab('listado')}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${tab === 'listado' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>
+            Listado
+          </button>
+          <button onClick={() => setTab('analytics')}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${tab === 'analytics' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500'}`}>
+            Reportes
+          </button>
+        </div>
+
+        {tab === 'analytics' && <BonificacionesAnalytics />}
+
+        {tab === 'listado' && <>
         {/* Filtros */}
         <div className="flex items-center gap-2 flex-wrap">
           <input type="date" value={fi} onChange={e => setFi(e.target.value)} className={inputCls} />
@@ -113,6 +128,8 @@ export default function Bonificaciones() {
           </table>
         </div>
 
+
+      </>}
 
       {/* Modal detalle */}
         {detalle && (
