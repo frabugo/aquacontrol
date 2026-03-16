@@ -12,6 +12,7 @@ const { getPool } = require('./poolManager');
 const db = require('./db'); // inicia la conexión
 
 const app  = express();
+app.set('trust proxy', 1); // nginx proxy - leer IP real del cliente
 const PORT = process.env.PORT || 3001;
 
 // Tokens invalidados por desplazamiento de sesión
@@ -55,7 +56,8 @@ app.use(tenantMiddleware);
 // Rate limit global: 100 req/min por IP
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 300,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Demasiadas peticiones, intente en un momento' },
   standardHeaders: true,
   legacyHeaders: false,
