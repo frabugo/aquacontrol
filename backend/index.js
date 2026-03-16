@@ -604,7 +604,7 @@ BEGIN
   -- stock_llenos: SOLO planta (ruta_id IS NULL)
   -- Reparto ya fue descontado al cargar vehiculo (sp_cargar_vehiculo)
   IF v_ruta_id IS NULL THEN
-    IF NEW.tipo_linea IN ('compra_bidon', 'recarga', 'prestamo', 'producto') THEN
+    IF NEW.tipo_linea IN ('compra_bidon', 'recarga', 'prestamo', 'producto', 'bonificacion') THEN
       UPDATE presentaciones SET stock_llenos = stock_llenos - NEW.cantidad
       WHERE id = NEW.presentacion_id;
     END IF;
