@@ -659,13 +659,7 @@ exports.cancelar = async (req, res) => {
               );
             }
           }
-          // Revertir vacios que fueron a lavado
-          if (l.vacios_recibidos > 0) {
-            await conn.query(
-              'UPDATE presentaciones SET stock_en_lavado = GREATEST(0, stock_en_lavado - ?) WHERE id = ?',
-              [l.vacios_recibidos, l.presentacion_id]
-            );
-          }
+          // Revertir vacios a lavado lo hace el cascade de devoluciones mas abajo
         } else if (l.tipo_linea === 'prestamo') {
           await conn.query(
             'UPDATE presentaciones SET stock_llenos = stock_llenos + ? WHERE id = ?',
