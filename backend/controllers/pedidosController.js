@@ -693,6 +693,11 @@ exports.entregar = async (req, res) => {
           [cajaRuta.id, ventaId, catGarPed, garantiaMetodoPed, totalGarantiaPed,
            `Garantía pedido #${pedido.numero || ''} - ${cliNomPed?.nombre || 'Cliente'}`, req.user.id]
         );
+        // Sumar garantia a totales caja_ruta
+        await conn.query(
+          `UPDATE caja_ruta SET total_cobrado = total_cobrado + ?, neto_a_entregar = total_cobrado - total_gastos WHERE id = ?`,
+          [totalGarantiaPed, cajaRuta.id]
+        );
       }
       await conn.query(
         `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, origen, estado_entrega, categoria_id${cajaRuta ? ', caja_ruta_id' : ''})

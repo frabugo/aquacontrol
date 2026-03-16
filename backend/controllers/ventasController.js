@@ -594,12 +594,22 @@ exports.cancelar = async (req, res) => {
     for (const l of lineas) {
       if (isReparto) {
         // Reparto: revertir stock_vehiculo (llenos_entregados / vacios_recogidos)
-        if (['compra_bidon', 'recarga', 'producto'].includes(l.tipo_linea)) {
+        if (['compra_bidon', 'recarga', 'producto', 'bonificacion'].includes(l.tipo_linea)) {
           await conn.query(
             `UPDATE stock_vehiculo SET llenos_entregados = GREATEST(0, llenos_entregados - ?)
              WHERE ruta_id = ? AND presentacion_id = ?`,
             [l.cantidad, venta.ruta_id, l.presentacion_id]
           );
+          // Revertir prestamo auto de recarga/bonificacion en reparto
+          if ((l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') && venta.cliente_id) {
+            const faltantes = l.cantidad - l.vacios_recibidos;
+            if (faltantes > 0) {
+              await conn.query(
+                'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
+                [faltantes, venta.cliente_id]
+              );
+            }
+          }
         }
         if (l.tipo_linea === 'prestamo') {
           await conn.query(
@@ -639,6 +649,23 @@ exports.cancelar = async (req, res) => {
             'UPDATE presentaciones SET stock_llenos = stock_llenos + ? WHERE id = ?',
             [l.cantidad, l.presentacion_id]
           );
+          // Revertir prestamo auto (vacios faltantes que se sumaron como prestamo)
+          if (venta.cliente_id) {
+            const faltantes = l.cantidad - l.vacios_recibidos;
+            if (faltantes > 0) {
+              await conn.query(
+                'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
+                [faltantes, venta.cliente_id]
+              );
+            }
+          }
+          // Revertir vacios que fueron a lavado
+          if (l.vacios_recibidos > 0) {
+            await conn.query(
+              'UPDATE presentaciones SET stock_en_lavado = GREATEST(0, stock_en_lavado - ?) WHERE id = ?',
+              [l.vacios_recibidos, l.presentacion_id]
+            );
+          }
         } else if (l.tipo_linea === 'prestamo') {
           await conn.query(
             'UPDATE presentaciones SET stock_llenos = stock_llenos + ? WHERE id = ?',
@@ -659,6 +686,18 @@ exports.cancelar = async (req, res) => {
           }
         }
       }
+    }
+
+    // Revertir garantias si la venta tenia
+    const [lineasGar] = await conn.query(
+      'SELECT garantia FROM venta_detalle WHERE venta_id = ? AND garantia > 0', [req.params.id]
+    );
+    const totalGarRevert = lineasGar.reduce((s, l) => s + Number(l.garantia), 0);
+    if (totalGarRevert > 0 && venta.cliente_id) {
+      await conn.query(
+        'UPDATE clientes SET saldo_garantia = GREATEST(0, saldo_garantia - ?) WHERE id = ?',
+        [totalGarRevert, venta.cliente_id]
+      );
     }
 
     await conn.query('UPDATE ventas SET estado = ? WHERE id = ?', ['cancelada', req.params.id]);

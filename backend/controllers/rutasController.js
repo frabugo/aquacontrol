@@ -1391,6 +1391,11 @@ exports.ventaRapida = async (req, res) => {
         [cajaRuta.id, ventaId, catGarVR, garantiaMetodoVR, totalGarantiaVR,
          `Garantía venta #${ventaId} - ${cliNomVR?.nombre || 'Cliente'}`, req.user.id]
       );
+      // Sumar garantia a totales caja_ruta
+      await conn.query(
+        `UPDATE caja_ruta SET total_cobrado = total_cobrado + ?, neto_a_entregar = total_cobrado - total_gastos WHERE id = ?`,
+        [totalGarantiaVR, cajaRuta.id]
+      );
       await conn.query(
         `INSERT INTO caja_movimientos (caja_id, tipo, metodo_pago, monto, descripcion, cliente_id, venta_id, registrado_por, origen, estado_entrega, caja_ruta_id, categoria_id)
          VALUES (?, 'ingreso', ?, ?, ?, ?, ?, ?, 'repartidor', 'pendiente', ?, ?)`,
@@ -1512,6 +1517,17 @@ exports.anularVentaAlPaso = async (req, res) => {
            WHERE ruta_id = ? AND presentacion_id = ?`,
           [l.vacios_recibidos, rutaId, l.presentacion_id]
         );
+      }
+
+      // Revertir prestamo auto de recarga/bonificacion (vacios faltantes)
+      if ((l.tipo_linea === 'recarga' || l.tipo_linea === 'bonificacion') && venta.cliente_id) {
+        const faltantes = l.cantidad - l.vacios_recibidos;
+        if (faltantes > 0) {
+          await conn.query(
+            'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
+            [faltantes, venta.cliente_id]
+          );
+        }
       }
 
       // Si fue préstamo, revertir bidones_prestados y devoluciones asociadas
