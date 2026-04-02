@@ -221,6 +221,9 @@ function ModalMovimiento({ presentacion, onClose, onSaved }) {
 export default function StockRetornable({ presentacion: initialPresentacion, onClose, onUpdated }) {
   const [pres,      setPres]      = useState(initialPresentacion);
   const [movs,      setMovs]      = useState([]);
+  const [totalMovs, setTotalMovs] = useState(0);
+  const [paginas,   setPaginas]   = useState(1);
+  const [pagina,    setPagina]    = useState(1);
   const [loadingM,  setLoadingM]  = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -233,19 +236,24 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
   const fetchMovimientos = useCallback(async () => {
     setLoadingM(true);
     try {
-      const params = {};
+      const params = { page: pagina, limit: 50 };
       if (fechaInicio) params.fecha_inicio = fechaInicio;
       if (fechaFin)    params.fecha_fin    = fechaFin;
       const res = await getKardex(pres.id, params);
       setMovs(Array.isArray(res.data) ? res.data : []);
+      setTotalMovs(res.total || 0);
+      setPaginas(res.pages || 1);
     } catch {
       setMovs([]);
     } finally {
       setLoadingM(false);
     }
-  }, [pres.id, fechaInicio, fechaFin]);
+  }, [pres.id, fechaInicio, fechaFin, pagina]);
 
   useEffect(() => { fetchMovimientos(); }, [fetchMovimientos]);
+
+  // Reset página al cambiar fechas
+  useEffect(() => { setPagina(1); }, [fechaInicio, fechaFin]);
 
   function handleMovSaved(updatedPres) {
     setPres(updatedPres);
@@ -395,6 +403,22 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
                 </div>
               )}
             </div>
+
+            {/* Paginación */}
+            {paginas > 1 && (
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-xs text-slate-500">{totalMovs} movimientos — Pág. {pagina} de {paginas}</p>
+                <div className="flex gap-2">
+                  <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}
+                    className="px-3 py-1.5 text-xs border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition">Anterior</button>
+                  <button disabled={pagina >= paginas} onClick={() => setPagina(p => p + 1)}
+                    className="px-3 py-1.5 text-xs border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition">Siguiente</button>
+                </div>
+              </div>
+            )}
+            {paginas <= 1 && totalMovs > 0 && (
+              <p className="text-xs text-slate-400 mt-2">{totalMovs} movimientos</p>
+            )}
           </div>
         </div>
       </div>

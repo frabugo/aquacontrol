@@ -252,7 +252,15 @@ exports.kardex = async (req, res) => {
     if (fecha_inicio) { dateWhere += ' AND sm.fecha_hora >= ?'; dateParams.push(fecha_inicio); }
     if (fecha_fin)    { dateWhere += ' AND sm.fecha_hora < DATE_ADD(?, INTERVAL 1 DAY)'; dateParams.push(fecha_fin); }
 
-    // Movimientos filtrados (más recientes primero)
+    const { page, limit, offset } = parsePagination(req.query, { defaultLimit: 50 });
+
+    // Total filtrado
+    const [[{ totalFiltered }]] = await db.query(
+      `SELECT COUNT(*) AS totalFiltered FROM stock_movimientos sm WHERE sm.presentacion_id = ?${dateWhere}`,
+      [presId, ...dateParams]
+    );
+
+    // Movimientos filtrados paginados (más recientes primero)
     const [rows] = await db.query(
       `SELECT sm.id, sm.tipo, sm.estado_origen, sm.estado_destino, sm.cantidad,
               sm.repartidor_id, sm.motivo, sm.fecha_hora,
@@ -263,8 +271,8 @@ exports.kardex = async (req, res) => {
          LEFT JOIN usuarios rep ON rep.id = sm.repartidor_id
          WHERE sm.presentacion_id = ?${dateWhere}
          ORDER BY sm.fecha_hora DESC, sm.id DESC
-         LIMIT 200`,
-      [presId, ...dateParams]
+         LIMIT ? OFFSET ?`,
+      [presId, ...dateParams, limit, offset]
     );
 
     const COLS = ['lleno','vacio','roto','en_lavado','en_reparacion','perdido','baja'];
@@ -281,29 +289,36 @@ exports.kardex = async (req, res) => {
       return d;
     }
 
-    // Sumar deltas de movimientos POSTERIORES a los filtrados para calcular saldo inicial
-    let afterWhere = '';
-    const afterParams = [];
-    if (fecha_fin) {
-      afterWhere = ' AND sm.fecha_hora >= DATE_ADD(?, INTERVAL 1 DAY)';
-      afterParams.push(fecha_fin);
-    } else if (rows.length > 0) {
-      // Sin fecha_fin: los posteriores son los que tienen fecha > primer row
-      afterWhere = ' AND (sm.fecha_hora > ? OR (sm.fecha_hora = ? AND sm.id > ?))';
-      afterParams.push(rows[0].fecha_hora, rows[0].fecha_hora, rows[0].id);
-    }
-
+    // Sumar deltas de TODOS los movimientos posteriores a esta página para calcular saldos
+    // Eso incluye: movimientos después de fecha_fin + movimientos en el rango pero en páginas anteriores
     const afterDeltas = {};
     COLS.forEach(c => afterDeltas[c] = 0);
 
-    if (afterWhere) {
+    // 1. Movimientos después de fecha_fin
+    if (fecha_fin) {
       const [newer] = await db.query(
         `SELECT tipo, estado_origen, estado_destino, cantidad
            FROM stock_movimientos sm
-           WHERE sm.presentacion_id = ?${afterWhere}`,
-        [presId, ...afterParams]
+           WHERE sm.presentacion_id = ? AND sm.fecha_hora >= DATE_ADD(?, INTERVAL 1 DAY)`,
+        [presId, fecha_fin]
       );
       for (const m of newer) {
+        const d = getDeltas(m);
+        COLS.forEach(c => afterDeltas[c] += d[c]);
+      }
+    }
+
+    // 2. Movimientos en el rango pero en páginas anteriores (offset)
+    if (offset > 0) {
+      const [skipped] = await db.query(
+        `SELECT tipo, estado_origen, estado_destino, cantidad
+           FROM stock_movimientos sm
+           WHERE sm.presentacion_id = ?${dateWhere}
+           ORDER BY sm.fecha_hora DESC, sm.id DESC
+           LIMIT ?`,
+        [presId, ...dateParams, offset]
+      );
+      for (const m of skipped) {
         const d = getDeltas(m);
         COLS.forEach(c => afterDeltas[c] += d[c]);
       }
@@ -342,7 +357,8 @@ exports.kardex = async (req, res) => {
       };
     });
 
-    res.json({ data: kardex, total: rows.length, stock_actual: pres });
+    const pages = Math.ceil(totalFiltered / limit);
+    res.json({ data: kardex, total: totalFiltered, page, pages, stock_actual: pres });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
