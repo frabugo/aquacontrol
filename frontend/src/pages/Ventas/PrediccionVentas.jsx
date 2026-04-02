@@ -663,6 +663,96 @@ export default function PrediccionVentas() {
           )}
         </div>
 
+        {/* ═══ Precisión: proyectado vs real ═══ */}
+        {data?.backtesting?.length > 0 && data.backtesting.some(b => b.pred_total != null) && (() => {
+          const rows = data.backtesting.filter(b => b.pred_total != null);
+          // Calcular MAPE (Mean Absolute Percentage Error)
+          const errores = rows.map(b => {
+            const err = Math.abs(b.real_total - b.pred_total) / Math.max(b.real_total, 1);
+            return err;
+          });
+          const mape = errores.reduce((s, e) => s + e, 0) / errores.length * 100;
+          const precision = Math.max(0, 100 - mape);
+
+          const erroresUds = rows.filter(b => b.pred_unidades != null && b.real_unidades > 0).map(b =>
+            Math.abs(b.real_unidades - b.pred_unidades) / Math.max(b.real_unidades, 1)
+          );
+          const mapeUds = erroresUds.length > 0 ? erroresUds.reduce((s, e) => s + e, 0) / erroresUds.length * 100 : null;
+          const precisionUds = mapeUds != null ? Math.max(0, 100 - mapeUds) : null;
+
+          const precColor = precision >= 80 ? 'text-green-600' : precision >= 60 ? 'text-yellow-600' : 'text-red-600';
+          const precBg = precision >= 80 ? 'bg-green-50 border-green-200' : precision >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200';
+
+          return (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-700">Precision del modelo — Proyectado vs Real</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Ultimos {rows.length} dias con datos comparables. El modelo usa promedio del mismo dia de semana.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className={`rounded-xl border px-4 py-2 text-center ${precBg}`}>
+                    <p className={`text-xl font-bold ${precColor}`}>{precision.toFixed(0)}%</p>
+                    <p className="text-[10px] text-slate-500">Precision S/.</p>
+                  </div>
+                  {precisionUds != null && (
+                    <div className={`rounded-xl border px-4 py-2 text-center ${precisionUds >= 80 ? 'bg-green-50 border-green-200' : precisionUds >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className={`text-xl font-bold ${precisionUds >= 80 ? 'text-green-600' : precisionUds >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>{precisionUds.toFixed(0)}%</p>
+                      <p className="text-[10px] text-slate-500">Precision Uds.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Fecha</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Dia</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-blue-600">Proyectado S/.</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-slate-700">Real S/.</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-slate-500">Diferencia</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-blue-600">Proy. Uds</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-slate-700">Real Uds</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-slate-500">Dif. Uds</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {rows.map(b => {
+                      const diffPct = b.real_total > 0 ? ((b.pred_total - b.real_total) / b.real_total * 100) : 0;
+                      const diffUds = b.pred_unidades != null && b.real_unidades > 0
+                        ? ((b.pred_unidades - b.real_unidades) / b.real_unidades * 100) : null;
+                      const diffColor = Math.abs(diffPct) <= 20 ? 'text-green-600' : Math.abs(diffPct) <= 40 ? 'text-yellow-600' : 'text-red-600';
+                      const diffUdsColor = diffUds != null
+                        ? (Math.abs(diffUds) <= 20 ? 'text-green-600' : Math.abs(diffUds) <= 40 ? 'text-yellow-600' : 'text-red-600')
+                        : 'text-slate-400';
+                      return (
+                        <tr key={b.fecha} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 text-xs text-slate-500 tabular-nums">{b.fecha?.slice(5)}</td>
+                          <td className="px-3 py-2 text-xs text-slate-600">{DIAS_SEMANA[b.dia_semana]}</td>
+                          <td className="px-3 py-2 text-right text-xs tabular-nums text-blue-600">{formatS(b.pred_total)}</td>
+                          <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-slate-800">{formatS(b.real_total)}</td>
+                          <td className={`px-3 py-2 text-center text-xs font-semibold tabular-nums ${diffColor}`}>
+                            {diffPct >= 0 ? '+' : ''}{diffPct.toFixed(0)}%
+                          </td>
+                          <td className="px-3 py-2 text-right text-xs tabular-nums text-blue-600">{b.pred_unidades ?? '—'}</td>
+                          <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-slate-800">{b.real_unidades}</td>
+                          <td className={`px-3 py-2 text-center text-xs font-semibold tabular-nums ${diffUdsColor}`}>
+                            {diffUds != null ? `${diffUds >= 0 ? '+' : ''}${diffUds.toFixed(0)}%` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 sm:px-6 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-400">
+                Precision = 100% - error promedio. Verde: &lt;20% error, Amarillo: 20-40%, Rojo: &gt;40%. Conforme se acumulen mas datos, la precision mejorara automaticamente.
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ═══ Días sin actividad ═══ */}
         {data?.dias_sin_ventas?.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">

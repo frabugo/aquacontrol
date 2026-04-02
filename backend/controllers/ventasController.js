@@ -1005,6 +1005,46 @@ exports.prediccion = async (req, res) => {
       diasSinVentas = dsv;
     }
 
+    // 12. Backtesting: calcular en JS — para últimos 14 días, predicción (promedio día semana previo) vs real
+    // Usar ventasDiarias que ya tenemos
+    const backtestRows = [];
+    if (ventasDiarias.length >= 14) {
+      // Unidades diarias indexadas por fecha
+      const unidadesMap = {};
+      for (const u of ventasUnidades) unidadesMap[u.fecha] = Number(u.unidades);
+
+      // Para cada uno de los últimos 14 días
+      const ultimos14 = ventasDiarias.slice(-14);
+      for (const dia of ultimos14) {
+        const fecha = new Date(dia.fecha + 'T12:00:00');
+        const dow = fecha.getDay(); // 0=dom...6=sab
+
+        // Buscar todos los días anteriores con el mismo dow
+        const anteriores = ventasDiarias.filter(d => {
+          const df = new Date(d.fecha + 'T12:00:00');
+          return df < fecha && df.getDay() === dow;
+        });
+
+        const predTotal = anteriores.length > 0
+          ? anteriores.reduce((s, d) => s + Number(d.total), 0) / anteriores.length
+          : null;
+
+        const anterioresUds = anteriores.map(d => unidadesMap[d.fecha]).filter(v => v != null);
+        const predUnidades = anterioresUds.length > 0
+          ? anterioresUds.reduce((s, v) => s + v, 0) / anterioresUds.length
+          : null;
+
+        backtestRows.push({
+          fecha: dia.fecha,
+          dia_semana: fecha.getDay() + 1, // 1=dom compatible con DAYOFWEEK
+          real_total: Number(dia.total),
+          real_unidades: unidadesMap[dia.fecha] || 0,
+          pred_total: predTotal != null ? Math.round(predTotal) : null,
+          pred_unidades: predUnidades != null ? Math.round(predUnidades) : null,
+        });
+      }
+    }
+
     res.json({
       dias,
       ventas_diarias: ventasDiarias,
@@ -1021,6 +1061,7 @@ exports.prediccion = async (req, res) => {
       patron_quincena: patronQuincena,
       ventas_por_tipo: ventasPorTipo,
       dias_sin_ventas: diasSinVentas,
+      backtesting: backtestRows,
     });
   } catch (err) {
     console.error('ventas.prediccion:', err.message);
