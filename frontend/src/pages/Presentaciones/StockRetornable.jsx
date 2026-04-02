@@ -224,8 +224,9 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
   const [loadingM,  setLoadingM]  = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Filtros de fecha — por defecto hoy
-  const hoy = new Date().toISOString().slice(0, 10);
+  // Filtros de fecha — por defecto hoy (hora Perú)
+  const now = new Date();
+  const hoy = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
   const [fechaInicio, setFechaInicio] = useState(hoy);
   const [fechaFin,    setFechaFin]    = useState(hoy);
 
