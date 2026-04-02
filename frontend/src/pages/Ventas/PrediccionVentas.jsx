@@ -131,6 +131,11 @@ export default function PrediccionVentas() {
       : new Date();
     const n = data.ventas_diarias.length;
 
+    // Conectar: poner valor base de proyección en el último punto real
+    if (rows.length > 0) {
+      rows[rows.length - 1].proyeccion = rows[rows.length - 1].total;
+    }
+
     for (let i = 1; i <= 7; i++) {
       const d = new Date(lastDate);
       d.setDate(d.getDate() + i);
@@ -159,6 +164,9 @@ export default function PrediccionVentas() {
       ? new Date(data.ventas_unidades[data.ventas_unidades.length - 1].fecha + 'T12:00:00')
       : new Date();
     const n = data.ventas_unidades.length;
+    if (rows.length > 0) {
+      rows[rows.length - 1].proyeccion = rows[rows.length - 1].unidades;
+    }
     for (let i = 1; i <= 7; i++) {
       const d = new Date(lastDate);
       d.setDate(d.getDate() + i);
