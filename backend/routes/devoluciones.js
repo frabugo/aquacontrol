@@ -8,6 +8,7 @@ router.get('/',  auth, ctrl.list);
 router.get('/prestamos',             auth, ctrl.clientesPrestamos);
 router.get('/prestamos/:clienteId',  auth, ctrl.detallePrestamos);
 router.get('/pendientes/:clienteId', auth, ctrl.pendientesPorVenta);
+router.get('/auditoria-bidones/:clienteId', auth, ctrl.auditoriaBidones);
 router.post('/desde-reparto', auth, ctrl.createDesdeReparto);
 router.post('/bidon-perdido', auth, ctrl.bidonPerdido);
 router.post('/bidon-perdido-ruta', auth, ctrl.bidonPerdidoRuta);

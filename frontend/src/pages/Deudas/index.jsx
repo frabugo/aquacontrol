@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { listarDeudas, ventasCredito, historialPagos, registrarPago, anularPago } from '../../services/deudasService';
 import useMetodosPago from '../../hooks/useMetodosPago';
+import AuditoriaBidonesModal from '../../components/AuditoriaBidonesModal';
 
 const inputCls = `w-full px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
   placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`;
@@ -264,6 +265,7 @@ export default function Deudas() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch]     = useState('');
   const [selectedCliente, setSelectedCliente] = useState(null);
+  const [auditoriaCliente, setAuditoriaCliente] = useState(null);
 
   const fetchDeudas = useCallback(async (q, p) => {
     setLoading(true);
@@ -350,7 +352,10 @@ export default function Deudas() {
                   <td className="px-4 py-3 text-slate-500">{d.telefono || '—'}</td>
                   <td className="px-4 py-3 text-center">
                     {d.bidones_prestados > 0
-                      ? <span className="font-semibold text-orange-600">{d.bidones_prestados}</span>
+                      ? <button onClick={() => setAuditoriaCliente(d)} title="Ver detalle de bidones"
+                          className="font-semibold text-orange-600 hover:text-orange-800 hover:underline cursor-pointer">
+                          {d.bidones_prestados}
+                        </button>
                       : <span className="text-slate-400">0</span>}
                   </td>
                   <td className="px-4 py-3 tabular-nums">
@@ -380,6 +385,14 @@ export default function Deudas() {
           </div>
         )}
       </div>
+
+      {/* Modal auditoría bidones */}
+      {auditoriaCliente && (
+        <AuditoriaBidonesModal
+          cliente={auditoriaCliente}
+          onClose={() => setAuditoriaCliente(null)}
+        />
+      )}
 
       {/* Modal cobrar */}
       {selectedCliente && (

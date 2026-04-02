@@ -3,6 +3,7 @@ import Layout from '../../components/Layout';
 import ClienteModal from './ClienteModal';
 import { listarClientes, desactivarCliente, cargaInicialCliente, descargarPlantillaDeudas, importarDeudas } from '../../services/clientesService';
 import { exportarClientes } from '../../services/reportesService';
+import AuditoriaBidonesModal from '../../components/AuditoriaBidonesModal';
 
 /* ── Helpers de presentación ── */
 const TIPO_BADGE = {
@@ -278,6 +279,8 @@ export default function Clientes() {
   const [cargaCliente, setCargaCliente] = useState(null);
   // Modal importar Excel
   const [importarOpen, setImportarOpen] = useState(false);
+  // Modal auditoría bidones
+  const [auditoriaCliente, setAuditoriaCliente] = useState(null);
 
   // Confirm desactivar
   const [confirmId,   setConfirmId]   = useState(null);
@@ -472,7 +475,10 @@ export default function Clientes() {
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{c.telefono || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       {c.bidones_prestados > 0
-                        ? <span className="font-semibold text-orange-600">{c.bidones_prestados}</span>
+                        ? <button onClick={() => setAuditoriaCliente(c)} title="Ver detalle de bidones"
+                            className="font-semibold text-orange-600 hover:text-orange-800 hover:underline cursor-pointer">
+                            {c.bidones_prestados}
+                          </button>
                         : <span className="text-slate-400">0</span>}
                     </td>
                     <td className="px-4 py-3 tabular-nums whitespace-nowrap text-center">
@@ -569,6 +575,14 @@ export default function Clientes() {
         <ImportarDeudasModal
           onClose={() => setImportarOpen(false)}
           onDone={() => fetchClientes(search, tipo, page)}
+        />
+      )}
+
+      {/* Modal auditoría bidones */}
+      {auditoriaCliente && (
+        <AuditoriaBidonesModal
+          cliente={auditoriaCliente}
+          onClose={() => setAuditoriaCliente(null)}
         />
       )}
 

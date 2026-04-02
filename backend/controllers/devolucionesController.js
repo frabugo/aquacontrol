@@ -338,6 +338,109 @@ exports.detallePrestamos = async (req, res) => {
   }
 };
 
+/* ── GET /api/devoluciones/auditoria-bidones/:clienteId — Desglose completo de bidones ── */
+exports.auditoriaBidones = async (req, res) => {
+  try {
+    const clienteId = req.params.clienteId;
+
+    const [[cliente]] = await db.query(
+      'SELECT id, nombre, bidones_prestados FROM clientes WHERE id = ?', [clienteId]
+    );
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    // Préstamos explícitos (tipo_linea = 'prestamo')
+    const [prestamosExplicitos] = await db.query(
+      `SELECT v.id AS venta_id, v.folio, v.fecha_hora, v.estado,
+              p.nombre AS presentacion, SUM(vd.cantidad) AS cantidad
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         LEFT JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE v.cliente_id = ? AND vd.tipo_linea = 'prestamo' AND v.estado != 'cancelada'
+         GROUP BY v.id, vd.presentacion_id
+         ORDER BY v.fecha_hora ASC`,
+      [clienteId]
+    );
+
+    // Préstamos automáticos (recargas retornables con vacíos faltantes)
+    const [prestamosAuto] = await db.query(
+      `SELECT v.id AS venta_id, v.folio, v.fecha_hora, v.estado,
+              p.nombre AS presentacion,
+              SUM(vd.cantidad - COALESCE(vd.vacios_recibidos, 0)) AS cantidad
+         FROM venta_detalle vd
+         JOIN ventas v ON v.id = vd.venta_id
+         JOIN presentaciones p ON p.id = vd.presentacion_id
+         WHERE v.cliente_id = ? AND vd.tipo_linea = 'recarga' AND p.es_retornable = 1
+           AND v.estado != 'cancelada'
+           AND (vd.cantidad - COALESCE(vd.vacios_recibidos, 0)) > 0
+         GROUP BY v.id, vd.presentacion_id
+         ORDER BY v.fecha_hora ASC`,
+      [clienteId]
+    );
+
+    // Cargas iniciales (del audit_log)
+    const [cargasIniciales] = await db.query(
+      `SELECT creado_en AS fecha, usuario_nombre, detalle
+         FROM audit_log
+         WHERE tabla = 'clientes' AND registro_id = ?
+           AND detalle LIKE '%carga_inicial%'
+         ORDER BY creado_en ASC`,
+      [clienteId]
+    );
+
+    // Devoluciones activas
+    const [devoluciones] = await db.query(
+      `SELECT d.id, d.fecha, d.cantidad, d.origen, d.creado_en,
+              p.nombre AS presentacion, v.folio AS venta_folio,
+              u.nombre AS registrado_por
+         FROM devoluciones d
+         LEFT JOIN presentaciones p ON p.id = d.presentacion_id
+         LEFT JOIN ventas v ON v.id = d.venta_id
+         LEFT JOIN usuarios u ON u.id = d.registrado_por
+         WHERE d.cliente_id = ? AND d.estado = 'activa'
+         ORDER BY d.fecha ASC`,
+      [clienteId]
+    );
+
+    const totalExplicitos = prestamosExplicitos.reduce((s, r) => s + Number(r.cantidad), 0);
+    const totalAuto       = prestamosAuto.reduce((s, r) => s + Number(r.cantidad), 0);
+    const totalDevueltos  = devoluciones.reduce((s, r) => s + Number(r.cantidad), 0);
+    const saldoCalculado  = totalExplicitos + totalAuto - totalDevueltos;
+
+    let ultimaCargaInicial = null;
+    if (cargasIniciales.length > 0) {
+      const last = cargasIniciales[cargasIniciales.length - 1];
+      try {
+        const det = typeof last.detalle === 'string' ? JSON.parse(last.detalle) : last.detalle;
+        ultimaCargaInicial = { fecha: last.fecha, usuario: last.usuario_nombre, bidones_anterior: det.bidones_anterior, bidones_nuevo: det.bidones_nuevo };
+      } catch (_) {}
+    }
+
+    res.json({
+      cliente,
+      resumen: {
+        prestamos_ventas: totalExplicitos,
+        prestamos_auto_recargas: totalAuto,
+        total_prestados: totalExplicitos + totalAuto,
+        total_devueltos: totalDevueltos,
+        saldo_calculado: saldoCalculado,
+        saldo_actual: cliente.bidones_prestados,
+        diferencia: cliente.bidones_prestados - saldoCalculado,
+        ultima_carga_inicial: ultimaCargaInicial,
+      },
+      prestamos_explicitos: prestamosExplicitos.map(r => ({ ...r, cantidad: Number(r.cantidad) })),
+      prestamos_auto: prestamosAuto.map(r => ({ ...r, cantidad: Number(r.cantidad) })),
+      cargas_iniciales: cargasIniciales.map(r => {
+        let det = {};
+        try { det = typeof r.detalle === 'string' ? JSON.parse(r.detalle) : r.detalle; } catch (_) {}
+        return { fecha: r.fecha, usuario: r.usuario_nombre, ...det };
+      }),
+      devoluciones,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 /* ── POST /api/devoluciones/desde-reparto (chofer en ruta) ── */
 exports.createDesdeReparto = async (req, res) => {
   const conn = await db.getConnection();
