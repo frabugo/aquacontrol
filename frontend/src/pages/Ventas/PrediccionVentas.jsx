@@ -13,6 +13,7 @@ function formatS(n) {
 }
 
 const DIAS_SEMANA = ['', 'Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_SEMANA_FULL = ['', 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const PIE_COLORS  = ['#10b981', '#8b5cf6', '#3b82f6', '#f97316'];
 
 const inputCls = `px-3 py-2 text-sm rounded-lg border border-slate-300 text-slate-800
@@ -132,6 +133,72 @@ export default function PrediccionVentas() {
       promedio: Math.round(Number(d.promedio_total)),
       cantidad: Math.round(Number(d.promedio_cantidad) * 10) / 10,
     }));
+  }, [data]);
+
+  /* ── Plan de producción: próximos 7 días ── */
+  const planProduccion = useMemo(() => {
+    if (!data?.demanda_semanal?.length || !data?.stock_actual?.length) return null;
+
+    // Agrupar demanda por presentación → día_semana → promedio
+    const demandaMap = {};
+    for (const d of data.demanda_semanal) {
+      if (!demandaMap[d.presentacion_id]) {
+        demandaMap[d.presentacion_id] = { nombre: d.presentacion, porDia: {} };
+      }
+      demandaMap[d.presentacion_id].porDia[d.dia_semana] = Number(d.promedio_unidades);
+    }
+
+    // Stock actual indexado
+    const stockMap = {};
+    for (const s of data.stock_actual) {
+      stockMap[s.presentacion_id] = s;
+    }
+
+    // Generar próximos 7 días
+    const hoy = new Date();
+    const dias = [];
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() + i);
+      const dow = d.getDay() + 1; // DAYOFWEEK: 1=Dom...7=Sáb
+      dias.push({
+        fecha: d,
+        label: DIAS_SEMANA_FULL[dow],
+        fechaCorta: `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`,
+        dow,
+      });
+    }
+
+    // Por cada presentación, calcular demanda acumulada y si necesita producción
+    const productos = Object.entries(demandaMap).map(([presId, info]) => {
+      const stock = stockMap[presId];
+      const stockLlenos = stock ? Number(stock.stock_llenos) : 0;
+
+      let acumulado = 0;
+      const porDia = dias.map(dia => {
+        const demanda = Math.round(info.porDia[dia.dow] || 0);
+        acumulado += demanda;
+        return { ...dia, demanda, acumulado };
+      });
+
+      const totalDemanda7d = acumulado;
+      const necesitaProducir = Math.max(0, totalDemanda7d - stockLlenos);
+      const diasCubiertos = porDia.findIndex(d => d.acumulado > stockLlenos);
+
+      return {
+        presentacion_id: Number(presId),
+        nombre: info.nombre,
+        stockLlenos,
+        stockVacios: stock ? Number(stock.stock_vacios) : 0,
+        stockEnLavado: stock ? Number(stock.stock_en_lavado) : 0,
+        totalDemanda7d,
+        necesitaProducir,
+        diasCubiertos: diasCubiertos === -1 ? 7 : diasCubiertos,
+        porDia,
+      };
+    }).filter(p => p.totalDemanda7d > 0).sort((a, b) => b.totalDemanda7d - a.totalDemanda7d);
+
+    return { productos, dias };
   }, [data]);
 
   /* ── Comparación períodos ── */
@@ -285,6 +352,72 @@ export default function PrediccionVentas() {
             </div>
           </div>
         </div>
+
+        {/* Plan de producción */}
+        {planProduccion && planProduccion.productos.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-4 sm:px-6 py-4 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-slate-700">Plan de produccion — Proximos 7 dias</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Basado en el promedio de ventas por dia de semana. Demanda estimada vs stock disponible.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 whitespace-nowrap sticky left-0 bg-slate-50">Producto</th>
+                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-blue-600 whitespace-nowrap">Stock actual</th>
+                    {planProduccion.dias.map((d, i) => (
+                      <th key={i} className="text-center px-2 py-2.5 text-xs font-semibold text-slate-500 whitespace-nowrap">
+                        <div>{d.label.slice(0, 3)}</div>
+                        <div className="text-[10px] font-normal text-slate-400">{d.fechaCorta}</div>
+                      </th>
+                    ))}
+                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap bg-slate-100">Total 7d</th>
+                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-orange-600 whitespace-nowrap bg-orange-50">Producir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {planProduccion.productos.map(p => (
+                    <tr key={p.presentacion_id} className="hover:bg-slate-50">
+                      <td className="px-3 py-2.5 font-medium text-slate-700 whitespace-nowrap sticky left-0 bg-white">
+                        {p.nombre}
+                        {p.diasCubiertos <= 2 && (
+                          <span className="ml-2 text-[10px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                            {p.diasCubiertos === 0 ? 'SIN STOCK' : `${p.diasCubiertos}d de stock`}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="font-bold text-blue-600">{p.stockLlenos}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">llenos</span>
+                      </td>
+                      {p.porDia.map((d, i) => {
+                        const superaStock = d.acumulado > p.stockLlenos;
+                        return (
+                          <td key={i} className={`px-2 py-2.5 text-center tabular-nums text-xs ${superaStock ? 'bg-red-50 text-red-700 font-semibold' : 'text-slate-600'}`}>
+                            {d.demanda}
+                          </td>
+                        );
+                      })}
+                      <td className="px-3 py-2.5 text-center font-bold text-slate-700 bg-slate-50 tabular-nums">{p.totalDemanda7d}</td>
+                      <td className={`px-3 py-2.5 text-center font-bold tabular-nums ${p.necesitaProducir > 0 ? 'text-orange-700 bg-orange-50' : 'text-green-600 bg-green-50'}`}>
+                        {p.necesitaProducir > 0 ? p.necesitaProducir : 'OK'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-4 sm:px-6 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-4 text-xs text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-red-50 border border-red-200" /> Demanda supera stock disponible
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-semibold rounded">SIN STOCK</span> Stock no cubre ni el primer dia
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top productos */}

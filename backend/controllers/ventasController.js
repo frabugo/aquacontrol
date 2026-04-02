@@ -902,6 +902,31 @@ exports.prediccion = async (req, res) => {
       [dias, mitad]
     );
 
+    // 6. Demanda por presentación por día de semana (unidades)
+    const [demandaSemanal] = await db.query(
+      `SELECT DAYOFWEEK(v.fecha_hora) AS dia_semana,
+              p.id AS presentacion_id, p.nombre AS presentacion,
+              SUM(d.cantidad) AS total_unidades,
+              COUNT(DISTINCT DATE(v.fecha_hora)) AS dias_contados,
+              ROUND(SUM(d.cantidad) / COUNT(DISTINCT DATE(v.fecha_hora)), 1) AS promedio_unidades
+         FROM venta_detalle d
+         JOIN ventas v ON v.id = d.venta_id
+         JOIN presentaciones p ON p.id = d.presentacion_id
+        WHERE v.estado != 'cancelada'
+          AND v.fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+          AND d.tipo_linea IN ('recarga','compra_bidon','prestamo','bonificacion')
+        GROUP BY DAYOFWEEK(v.fecha_hora), p.id
+        ORDER BY p.id, dia_semana`,
+      [dias]
+    );
+
+    // 7. Stock actual de presentaciones retornables (para comparar con demanda)
+    const [stockActual] = await db.query(
+      `SELECT id AS presentacion_id, nombre, stock_llenos, stock_vacios, stock_en_lavado,
+              es_retornable
+         FROM presentaciones WHERE activo = 1 AND es_retornable = 1`
+    );
+
     res.json({
       dias,
       ventas_diarias: ventasDiarias,
@@ -912,6 +937,8 @@ exports.prediccion = async (req, res) => {
         reciente: periodoReciente,
         anterior: periodoAnterior,
       },
+      demanda_semanal: demandaSemanal,
+      stock_actual: stockActual,
     });
   } catch (err) {
     console.error('ventas.prediccion:', err.message);
