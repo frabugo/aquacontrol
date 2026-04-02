@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getMovimientosStock, registrarMovimiento } from '../../services/presentacionesService';
+import { getKardex, registrarMovimiento } from '../../services/presentacionesService';
 
 /* ── Definición de movimientos disponibles ── */
 const MOVIMIENTOS = [
@@ -227,7 +227,7 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
   const fetchMovimientos = useCallback(async () => {
     setLoadingM(true);
     try {
-      const res = await getMovimientosStock(pres.id, { limit: 30 });
+      const res = await getKardex(pres.id, { limit: 50 });
       setMovs(Array.isArray(res.data) ? res.data : []);
     } catch {
       setMovs([]);
@@ -297,39 +297,81 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
             </div>
           </div>
 
-          {/* Historial */}
+          {/* Kardex */}
           <div className="px-6 pb-6">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Historial de movimientos</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Kardex de movimientos</p>
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               {loadingM ? (
                 <div className="p-6 text-center text-slate-400 text-sm">Cargando…</div>
               ) : movs.length === 0 ? (
                 <div className="p-6 text-center text-slate-400 text-sm">Sin movimientos registrados</div>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      {['Fecha/Hora','Tipo','Origen','Destino','Cantidad','Motivo','Registrado por'].map(h => (
-                        <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {movs.map(m => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap tabular-nums">{formatFechaHora(m.fecha_hora)}</td>
-                        <td className="px-3 py-2.5 text-xs font-medium text-slate-700 whitespace-nowrap">
-                          {MOVIMIENTOS.find(x => x.tipo === m.tipo)?.label ?? m.tipo}
-                        </td>
-                        <td className="px-3 py-2.5 text-xs text-slate-500">{ESTADOS_LABEL[m.estado_origen] ?? '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-slate-500">{ESTADOS_LABEL[m.estado_destino] ?? '—'}</td>
-                        <td className="px-3 py-2.5 text-xs font-semibold text-center tabular-nums">{m.cantidad}</td>
-                        <td className="px-3 py-2.5 text-xs text-slate-400 max-w-[140px] truncate">{m.motivo || '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">{m.registrado_por_nombre ?? '—'}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Fecha</th>
+                        <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Movimiento</th>
+                        <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Cant.</th>
+                        <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Ubicación</th>
+                        {isRetornable && <>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-blue-600 uppercase whitespace-nowrap bg-blue-50/50">Llenos</th>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap bg-slate-50/80">Vacíos</th>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-yellow-600 uppercase whitespace-nowrap bg-yellow-50/50">Lavado</th>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-red-500 uppercase whitespace-nowrap bg-red-50/50">Rotos</th>
+                        </>}
+                        {!isRetornable && <>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-blue-600 uppercase whitespace-nowrap bg-blue-50/50">Stock</th>
+                          <th className="px-2 py-2 text-center text-[10px] font-semibold text-red-500 uppercase whitespace-nowrap bg-red-50/50">Rotos</th>
+                        </>}
+                        <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Detalle</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {movs.map(m => {
+                        const movLabel = MOVIMIENTOS.find(x => x.tipo === m.tipo)?.label ?? m.tipo;
+                        const isEntrada = ['compra_empresa','llenado','lavado_fin','reparacion_fin','devolucion_cliente','devolucion_ruta','descarga_retorno'].includes(m.tipo);
+                        const isSalida = ['venta','prestamo','rotura','baja','perdida','carga_salida'].includes(m.tipo);
+                        return (
+                          <tr key={m.id} className="hover:bg-slate-50">
+                            <td className="px-2 py-2 text-slate-500 whitespace-nowrap tabular-nums">{formatFechaHora(m.fecha_hora)}</td>
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              <span className={`font-medium ${isEntrada ? 'text-green-700' : isSalida ? 'text-red-600' : 'text-slate-700'}`}>
+                                {movLabel}
+                              </span>
+                              {m.estado_origen && m.estado_destino && (
+                                <span className="text-slate-400 ml-1">
+                                  {ESTADOS_LABEL[m.estado_origen]} → {ESTADOS_LABEL[m.estado_destino]}
+                                </span>
+                              )}
+                            </td>
+                            <td className={`px-2 py-2 text-center font-bold tabular-nums ${isEntrada ? 'text-green-600' : isSalida ? 'text-red-600' : 'text-slate-700'}`}>
+                              {isEntrada ? '+' : isSalida ? '-' : ''}{m.cantidad}
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              {m.repartidor
+                                ? <span className="inline-flex items-center gap-1 text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-medium">{m.repartidor}</span>
+                                : <span className="text-slate-500">Planta</span>}
+                            </td>
+                            {isRetornable && m.saldo && <>
+                              <td className="px-2 py-2 text-center tabular-nums font-semibold text-blue-700 bg-blue-50/30">{m.saldo.llenos}</td>
+                              <td className="px-2 py-2 text-center tabular-nums font-semibold text-slate-600 bg-slate-50/50">{m.saldo.vacios}</td>
+                              <td className="px-2 py-2 text-center tabular-nums text-yellow-700 bg-yellow-50/30">{m.saldo.en_lavado}</td>
+                              <td className="px-2 py-2 text-center tabular-nums text-red-500 bg-red-50/30">{m.saldo.rotos}</td>
+                            </>}
+                            {!isRetornable && m.saldo && <>
+                              <td className="px-2 py-2 text-center tabular-nums font-semibold text-blue-700 bg-blue-50/30">{m.saldo.llenos}</td>
+                              <td className="px-2 py-2 text-center tabular-nums text-red-500 bg-red-50/30">{m.saldo.rotos}</td>
+                            </>}
+                            <td className="px-2 py-2 text-slate-400 max-w-[120px] truncate">
+                              {m.motivo || m.registrado_por || '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>

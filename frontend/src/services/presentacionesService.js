@@ -9,3 +9,4 @@ export const actualizarPresentacion = (id, data)    => api.put(`${BASE}/${id}`, 
 export const desactivarPresentacion = (id)          => api.delete(`${BASE}/${id}`).then(r => r.data);
 export const getMovimientosStock    = (id, params)  => api.get(`${BASE}/${id}/movimientos`, { params }).then(r => r.data);
 export const registrarMovimiento    = (id, data)    => api.post(`${BASE}/${id}/movimientos`, data).then(r => r.data);
+export const getKardex              = (id, params)  => api.get(`${BASE}/${id}/kardex`, { params }).then(r => r.data);

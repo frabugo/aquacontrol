@@ -11,6 +11,7 @@ router.put ('/:id',                    auth, ctrl.update);
 router.delete('/:id',                  auth, ctrl.deactivate);
 router.get ('/:id/trazabilidad',       auth, ctrl.trazabilidad);
 router.get ('/:id/movimientos',        auth, ctrl.getMovimientos);
+router.get ('/:id/kardex',             auth, ctrl.kardex);
 router.post('/:id/movimientos',        auth, ctrl.registrarMovimiento);
 
 module.exports = router;

@@ -232,6 +232,132 @@ exports.getMovimientos = async (req, res) => {
   }
 };
 
+/* ── GET /api/presentaciones/:id/kardex — Movimientos con saldos acumulados ── */
+exports.kardex = async (req, res) => {
+  try {
+    const presId = req.params.id;
+    const { page, limit, offset } = parsePagination(req.query, { defaultLimit: 50 });
+
+    // Stock actual de la presentación
+    const [[pres]] = await db.query(
+      `SELECT id, nombre, stock_llenos, stock_vacios, stock_rotos, stock_en_lavado,
+              stock_en_reparacion, stock_perdidos, stock_baja
+         FROM presentaciones WHERE id = ?`, [presId]
+    );
+    if (!pres) return res.status(404).json({ error: 'Presentación no encontrada' });
+
+    // Total de movimientos
+    const [[{ total }]] = await db.query(
+      'SELECT COUNT(*) AS total FROM stock_movimientos WHERE presentacion_id = ?', [presId]
+    );
+
+    // Movimientos paginados (más recientes primero)
+    const [rows] = await db.query(
+      `SELECT sm.id, sm.tipo, sm.estado_origen, sm.estado_destino, sm.cantidad,
+              sm.repartidor_id, sm.motivo, sm.fecha_hora,
+              u.nombre AS registrado_por_nombre,
+              rep.nombre AS repartidor_nombre
+         FROM stock_movimientos sm
+         LEFT JOIN usuarios u ON u.id = sm.registrado_por
+         LEFT JOIN usuarios rep ON rep.id = sm.repartidor_id
+         WHERE sm.presentacion_id = ?
+         ORDER BY sm.fecha_hora DESC, sm.id DESC
+         LIMIT ? OFFSET ?`,
+      [presId, limit, offset]
+    );
+
+    // Para calcular saldos, necesitamos saber cuánto cambió DESPUÉS de estos rows
+    // (movimientos más recientes que no están en esta página)
+    // Obtenemos la suma de cambios de movimientos posteriores al último de esta página
+    const COLS = ['lleno','vacio','roto','en_lavado','en_reparacion','perdido','baja'];
+    const COL_MAP = {
+      lleno: 'stock_llenos', vacio: 'stock_vacios', roto: 'stock_rotos',
+      en_lavado: 'stock_en_lavado', en_reparacion: 'stock_en_reparacion',
+      perdido: 'stock_perdidos', baja: 'stock_baja',
+      // estados de ruta se mapean a vacíos al devolver
+      en_ruta_lleno: null, en_ruta_vacio: null, vendido: null,
+    };
+
+    // Calcular deltas de cada movimiento (qué columna sube/baja)
+    function getDeltas(m) {
+      const d = {};
+      COLS.forEach(c => d[c] = 0);
+      const eo = m.estado_origen;
+      const ed = m.estado_destino;
+      // Restar del origen (si es columna de planta)
+      if (eo && COL_MAP[eo]) {
+        const key = COL_MAP[eo].replace('stock_','').replace('s','').replace('lleno','lleno').replace('vacio','vacio');
+        // Mapear stock_llenos → lleno, stock_vacios → vacio, etc.
+        const k = eo === 'en_lavado' ? 'en_lavado' : eo === 'en_reparacion' ? 'en_reparacion' : eo;
+        if (COLS.includes(k)) d[k] -= m.cantidad;
+      }
+      // Sumar al destino
+      if (ed && COL_MAP[ed]) {
+        const k = ed === 'en_lavado' ? 'en_lavado' : ed === 'en_reparacion' ? 'en_reparacion' : ed;
+        if (COLS.includes(k)) d[k] += m.cantidad;
+      }
+      return d;
+    }
+
+    // Obtener TODOS los movimientos más recientes que los de esta página para calcular offset
+    let afterDeltas = {};
+    COLS.forEach(c => afterDeltas[c] = 0);
+
+    if (offset > 0) {
+      // Hay movimientos más recientes que esta página — sumar sus deltas
+      const [newer] = await db.query(
+        `SELECT tipo, estado_origen, estado_destino, cantidad
+           FROM stock_movimientos
+           WHERE presentacion_id = ?
+           ORDER BY fecha_hora DESC, id DESC
+           LIMIT ?`,
+        [presId, offset]
+      );
+      for (const m of newer) {
+        const d = getDeltas(m);
+        COLS.forEach(c => afterDeltas[c] += d[c]);
+      }
+    }
+
+    // Construir kardex: empezar con stock actual, restar los deltas posteriores, luego ir restando
+    const saldos = {};
+    COLS.forEach(c => saldos[c] = (Number(pres[`stock_${c === 'lleno' ? 'llenos' : c === 'vacio' ? 'vacios' : c === 'roto' ? 'rotos' : c === 'perdido' ? 'perdidos' : c}`]) || 0) - afterDeltas[c]);
+
+    const kardex = rows.map(m => {
+      const saldo_despues = { ...saldos };
+      const d = getDeltas(m);
+      // saldos actuales son DESPUÉS de este movimiento; restar delta para obtener ANTES
+      COLS.forEach(c => saldos[c] -= d[c]);
+
+      return {
+        id: m.id,
+        fecha_hora: m.fecha_hora,
+        tipo: m.tipo,
+        estado_origen: m.estado_origen,
+        estado_destino: m.estado_destino,
+        cantidad: m.cantidad,
+        motivo: m.motivo,
+        registrado_por: m.registrado_por_nombre,
+        repartidor: m.repartidor_nombre,
+        ubicacion: m.repartidor_id ? 'repartidor' : 'planta',
+        saldo: {
+          llenos:        saldo_despues.lleno,
+          vacios:        saldo_despues.vacio,
+          rotos:         saldo_despues.roto,
+          en_lavado:     saldo_despues.en_lavado,
+          en_reparacion: saldo_despues.en_reparacion,
+          perdidos:      saldo_despues.perdido,
+          baja:          saldo_despues.baja,
+        },
+      };
+    });
+
+    res.json({ ...paginatedResponse(kardex, total, page, limit), stock_actual: pres });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 /* ── POST /api/presentaciones/:id/movimientos ── */
 exports.registrarMovimiento = async (req, res) => {
   const { tipo, estado_origen, estado_destino, cantidad, motivo } = req.body;
