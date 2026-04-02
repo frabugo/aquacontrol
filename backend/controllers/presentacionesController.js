@@ -236,9 +236,9 @@ exports.getMovimientos = async (req, res) => {
 exports.kardex = async (req, res) => {
   try {
     const presId = req.params.id;
-    const { page, limit, offset } = parsePagination(req.query, { defaultLimit: 50 });
+    const fecha_inicio = req.query.fecha_inicio || null;
+    const fecha_fin    = req.query.fecha_fin    || null;
 
-    // Stock actual de la presentación
     const [[pres]] = await db.query(
       `SELECT id, nombre, stock_llenos, stock_vacios, stock_rotos, stock_en_lavado,
               stock_en_reparacion, stock_perdidos, stock_baja
@@ -246,12 +246,13 @@ exports.kardex = async (req, res) => {
     );
     if (!pres) return res.status(404).json({ error: 'Presentación no encontrada' });
 
-    // Total de movimientos
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT(*) AS total FROM stock_movimientos WHERE presentacion_id = ?', [presId]
-    );
+    // Filtro de fechas
+    let dateWhere = '';
+    const dateParams = [];
+    if (fecha_inicio) { dateWhere += ' AND sm.fecha_hora >= ?'; dateParams.push(fecha_inicio); }
+    if (fecha_fin)    { dateWhere += ' AND sm.fecha_hora < DATE_ADD(?, INTERVAL 1 DAY)'; dateParams.push(fecha_fin); }
 
-    // Movimientos paginados (más recientes primero)
+    // Movimientos filtrados (más recientes primero)
     const [rows] = await db.query(
       `SELECT sm.id, sm.tipo, sm.estado_origen, sm.estado_destino, sm.cantidad,
               sm.repartidor_id, sm.motivo, sm.fecha_hora,
@@ -260,58 +261,47 @@ exports.kardex = async (req, res) => {
          FROM stock_movimientos sm
          LEFT JOIN usuarios u ON u.id = sm.registrado_por
          LEFT JOIN usuarios rep ON rep.id = sm.repartidor_id
-         WHERE sm.presentacion_id = ?
+         WHERE sm.presentacion_id = ?${dateWhere}
          ORDER BY sm.fecha_hora DESC, sm.id DESC
-         LIMIT ? OFFSET ?`,
-      [presId, limit, offset]
+         LIMIT 200`,
+      [presId, ...dateParams]
     );
 
-    // Para calcular saldos, necesitamos saber cuánto cambió DESPUÉS de estos rows
-    // (movimientos más recientes que no están en esta página)
-    // Obtenemos la suma de cambios de movimientos posteriores al último de esta página
     const COLS = ['lleno','vacio','roto','en_lavado','en_reparacion','perdido','baja'];
     const COL_MAP = {
-      lleno: 'stock_llenos', vacio: 'stock_vacios', roto: 'stock_rotos',
-      en_lavado: 'stock_en_lavado', en_reparacion: 'stock_en_reparacion',
-      perdido: 'stock_perdidos', baja: 'stock_baja',
-      // estados de ruta se mapean a vacíos al devolver
-      en_ruta_lleno: null, en_ruta_vacio: null, vendido: null,
+      lleno: true, vacio: true, roto: true,
+      en_lavado: true, en_reparacion: true, perdido: true, baja: true,
     };
 
-    // Calcular deltas de cada movimiento (qué columna sube/baja)
     function getDeltas(m) {
       const d = {};
       COLS.forEach(c => d[c] = 0);
-      const eo = m.estado_origen;
-      const ed = m.estado_destino;
-      // Restar del origen (si es columna de planta)
-      if (eo && COL_MAP[eo]) {
-        const key = COL_MAP[eo].replace('stock_','').replace('s','').replace('lleno','lleno').replace('vacio','vacio');
-        // Mapear stock_llenos → lleno, stock_vacios → vacio, etc.
-        const k = eo === 'en_lavado' ? 'en_lavado' : eo === 'en_reparacion' ? 'en_reparacion' : eo;
-        if (COLS.includes(k)) d[k] -= m.cantidad;
-      }
-      // Sumar al destino
-      if (ed && COL_MAP[ed]) {
-        const k = ed === 'en_lavado' ? 'en_lavado' : ed === 'en_reparacion' ? 'en_reparacion' : ed;
-        if (COLS.includes(k)) d[k] += m.cantidad;
-      }
+      if (m.estado_origen && COL_MAP[m.estado_origen]) d[m.estado_origen] -= m.cantidad;
+      if (m.estado_destino && COL_MAP[m.estado_destino]) d[m.estado_destino] += m.cantidad;
       return d;
     }
 
-    // Obtener TODOS los movimientos más recientes que los de esta página para calcular offset
-    let afterDeltas = {};
+    // Sumar deltas de movimientos POSTERIORES a los filtrados para calcular saldo inicial
+    let afterWhere = '';
+    const afterParams = [];
+    if (fecha_fin) {
+      afterWhere = ' AND sm.fecha_hora >= DATE_ADD(?, INTERVAL 1 DAY)';
+      afterParams.push(fecha_fin);
+    } else if (rows.length > 0) {
+      // Sin fecha_fin: los posteriores son los que tienen fecha > primer row
+      afterWhere = ' AND (sm.fecha_hora > ? OR (sm.fecha_hora = ? AND sm.id > ?))';
+      afterParams.push(rows[0].fecha_hora, rows[0].fecha_hora, rows[0].id);
+    }
+
+    const afterDeltas = {};
     COLS.forEach(c => afterDeltas[c] = 0);
 
-    if (offset > 0) {
-      // Hay movimientos más recientes que esta página — sumar sus deltas
+    if (afterWhere) {
       const [newer] = await db.query(
         `SELECT tipo, estado_origen, estado_destino, cantidad
-           FROM stock_movimientos
-           WHERE presentacion_id = ?
-           ORDER BY fecha_hora DESC, id DESC
-           LIMIT ?`,
-        [presId, offset]
+           FROM stock_movimientos sm
+           WHERE sm.presentacion_id = ?${afterWhere}`,
+        [presId, ...afterParams]
       );
       for (const m of newer) {
         const d = getDeltas(m);
@@ -319,14 +309,14 @@ exports.kardex = async (req, res) => {
       }
     }
 
-    // Construir kardex: empezar con stock actual, restar los deltas posteriores, luego ir restando
+    // stock_col names → COLS key
+    const colKey = c => c === 'lleno' ? 'llenos' : c === 'vacio' ? 'vacios' : c === 'roto' ? 'rotos' : c === 'perdido' ? 'perdidos' : c;
     const saldos = {};
-    COLS.forEach(c => saldos[c] = (Number(pres[`stock_${c === 'lleno' ? 'llenos' : c === 'vacio' ? 'vacios' : c === 'roto' ? 'rotos' : c === 'perdido' ? 'perdidos' : c}`]) || 0) - afterDeltas[c]);
+    COLS.forEach(c => saldos[c] = (Number(pres[`stock_${colKey(c)}`]) || 0) - afterDeltas[c]);
 
     const kardex = rows.map(m => {
       const saldo_despues = { ...saldos };
       const d = getDeltas(m);
-      // saldos actuales son DESPUÉS de este movimiento; restar delta para obtener ANTES
       COLS.forEach(c => saldos[c] -= d[c]);
 
       return {
@@ -352,7 +342,7 @@ exports.kardex = async (req, res) => {
       };
     });
 
-    res.json({ ...paginatedResponse(kardex, total, page, limit), stock_actual: pres });
+    res.json({ data: kardex, total: rows.length, stock_actual: pres });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

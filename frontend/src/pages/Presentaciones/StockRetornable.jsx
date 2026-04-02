@@ -224,17 +224,25 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
   const [loadingM,  setLoadingM]  = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Filtros de fecha — por defecto hoy
+  const hoy = new Date().toISOString().slice(0, 10);
+  const [fechaInicio, setFechaInicio] = useState(hoy);
+  const [fechaFin,    setFechaFin]    = useState(hoy);
+
   const fetchMovimientos = useCallback(async () => {
     setLoadingM(true);
     try {
-      const res = await getKardex(pres.id, { limit: 50 });
+      const params = {};
+      if (fechaInicio) params.fecha_inicio = fechaInicio;
+      if (fechaFin)    params.fecha_fin    = fechaFin;
+      const res = await getKardex(pres.id, params);
       setMovs(Array.isArray(res.data) ? res.data : []);
     } catch {
       setMovs([]);
     } finally {
       setLoadingM(false);
     }
-  }, [pres.id]);
+  }, [pres.id, fechaInicio, fechaFin]);
 
   useEffect(() => { fetchMovimientos(); }, [fetchMovimientos]);
 
@@ -299,7 +307,19 @@ export default function StockRetornable({ presentacion: initialPresentacion, onC
 
           {/* Kardex */}
           <div className="px-6 pb-6">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Kardex de movimientos</p>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kardex de movimientos</p>
+              <div className="flex items-center gap-2 ml-auto">
+                <input type="date" className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+                <span className="text-xs text-slate-400">a</span>
+                <input type="date" className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+                <button onClick={() => { setFechaInicio(''); setFechaFin(''); }}
+                  className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                  title="Ver todo">Todo</button>
+              </div>
+            </div>
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               {loadingM ? (
                 <div className="p-6 text-center text-slate-400 text-sm">Cargando…</div>
