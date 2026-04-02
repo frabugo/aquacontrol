@@ -591,7 +591,6 @@ exports.cancelar = async (req, res) => {
     const isReparto = venta.origen === 'reparto' && venta.ruta_id;
 
     // Reverse stock for each line
-    let totalPrestamoAutoRevertir = 0;
     for (const l of lineas) {
       if (isReparto) {
         // Reparto: revertir stock_vehiculo (llenos_entregados / vacios_recogidos)
@@ -682,24 +681,6 @@ exports.cancelar = async (req, res) => {
         }
       }
 
-      // Revertir préstamos automáticos de recargas retornables (faltantes de vacíos)
-      if (l.tipo_linea === 'recarga' && venta.cliente_id) {
-        const faltantes = Number(l.cantidad) - Number(l.vacios_recibidos || 0);
-        if (faltantes > 0) {
-          const [[pres]] = await conn.query(
-            'SELECT es_retornable FROM presentaciones WHERE id = ?', [l.presentacion_id]
-          );
-          if (pres?.es_retornable) totalPrestamoAutoRevertir += faltantes;
-        }
-      }
-    }
-
-    // Restar préstamos automáticos acumulados de recargas
-    if (totalPrestamoAutoRevertir > 0 && venta.cliente_id) {
-      await conn.query(
-        'UPDATE clientes SET bidones_prestados = GREATEST(0, bidones_prestados - ?) WHERE id = ?',
-        [totalPrestamoAutoRevertir, venta.cliente_id]
-      );
     }
 
     // Revertir garantias si la venta tenia
