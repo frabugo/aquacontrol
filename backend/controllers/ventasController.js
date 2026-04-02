@@ -975,26 +975,35 @@ exports.prediccion = async (req, res) => {
       [dias]
     );
 
-    // 11. Días sin actividad (para detectar días que no se trabaja)
-    const [diasSinVentas] = await db.query(
-      `SELECT DAYOFWEEK(d.fecha) AS dia_semana,
-              COUNT(*) AS dias_sin_venta
-         FROM (
-           SELECT DATE(fecha_hora) AS fecha FROM ventas
-           WHERE estado != 'cancelada'
-             AND fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-           GROUP BY DATE(fecha_hora)
-         ) AS con_venta
-         RIGHT JOIN (
-           SELECT CURDATE() - INTERVAL seq DAY AS fecha
-           FROM (SELECT @row := @row + 1 AS seq FROM information_schema.columns, (SELECT @row := -1) r LIMIT 180) nums
-           WHERE CURDATE() - INTERVAL seq DAY >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-         ) AS d ON d.fecha = con_venta.fecha
-         WHERE con_venta.fecha IS NULL
-         GROUP BY DAYOFWEEK(d.fecha)
-         ORDER BY dias_sin_venta DESC`,
-      [dias, dias]
+    // 11. Días sin actividad (solo desde la primera venta registrada)
+    const [[primeraVenta]] = await db.query(
+      "SELECT MIN(DATE(fecha_hora)) AS inicio FROM ventas WHERE estado != 'cancelada'"
     );
+    const fechaInicio = primeraVenta?.inicio;
+    let diasSinVentas = [];
+    if (fechaInicio) {
+      // Días de semana donde NUNCA se vendió (o muy poco) desde que inició el sistema
+      const [dsv] = await db.query(
+        `SELECT DAYOFWEEK(d.fecha) AS dia_semana,
+                COUNT(*) AS dias_sin_venta,
+                COUNT(*) AS total_dias_semana
+           FROM (
+             SELECT DATE(?) + INTERVAL seq DAY AS fecha
+             FROM (SELECT @row := @row + 1 AS seq FROM information_schema.columns, (SELECT @row := -1) r LIMIT 180) nums
+             WHERE DATE(?) + INTERVAL seq DAY <= CURDATE()
+           ) AS d
+           LEFT JOIN (
+             SELECT DISTINCT DATE(fecha_hora) AS fecha FROM ventas
+             WHERE estado != 'cancelada' AND fecha_hora >= ?
+           ) AS v ON v.fecha = d.fecha
+           WHERE v.fecha IS NULL
+           GROUP BY DAYOFWEEK(d.fecha)
+           HAVING dias_sin_venta > 1
+           ORDER BY dias_sin_venta DESC`,
+        [fechaInicio, fechaInicio, fechaInicio]
+      );
+      diasSinVentas = dsv;
+    }
 
     res.json({
       dias,
