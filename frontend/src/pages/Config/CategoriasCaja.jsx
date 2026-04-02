@@ -17,7 +17,7 @@ export default function CategoriasCaja() {
     setLoading(true);
     try {
       const res = await api.get('/config/categorias-caja');
-      const rows = res.data?.data || res.data; setCategorias(Array.isArray(rows) ? rows : []);
+      setCategorias(Array.isArray(res.data) ? res.data : []);
     } catch { setCategorias([]); }
     setLoading(false);
   }, []);

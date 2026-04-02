@@ -379,11 +379,11 @@ exports.auditoriaBidones = async (req, res) => {
 
     // Cargas iniciales (del audit_log)
     const [cargasIniciales] = await db.query(
-      `SELECT creado_en AS fecha, usuario_nombre, detalle
+      `SELECT created_at AS fecha, usuario_nombre, detalle
          FROM audit_log
          WHERE tabla = 'clientes' AND registro_id = ?
            AND detalle LIKE '%carga_inicial%'
-         ORDER BY creado_en ASC`,
+         ORDER BY created_at ASC`,
       [clienteId]
     );
 

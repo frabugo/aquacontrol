@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 
-export default function ResumenBidones({ cajaId, autoOpen = false }) {
+export default function ResumenBidones({ cajaId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(autoOpen);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!cajaId || !open) return;
@@ -16,8 +16,8 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
   }, [cajaId, open]);
 
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${autoOpen ? '' : ''}`}>
-      {!autoOpen && <button onClick={() => setOpen(!open)}
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <button onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition">
         <div className="flex items-center gap-2">
           <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
         <svg className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
-      </button>}
+      </button>
 
       {open && (
         <div className="px-5 pb-5 border-t border-slate-100">
@@ -54,10 +54,9 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ventas</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {data.vendidos_recarga > 0 && <Item label="Recargas vendidas" value={data.vendidos_recarga} color="amber" icon="-" />}
-                  {data.vendidos_completo > 0 && <Item label="Bidones completos vendidos" value={data.vendidos_completo} color="amber" icon="-" />}
-                  {data.vendidos_prestamo > 0 && <Item label="Bidones prestados" value={data.vendidos_prestamo} color="red" icon="-" />}
-                  {data.prestamos_auto > 0 && <Item label="Vacios no devueltos (quedan como prestamo)" value={data.prestamos_auto} color="red" icon="" />}
+                  {data.vendidos_recarga > 0 && <Item label="Recargas" value={data.vendidos_recarga} color="amber" icon="-" />}
+                  {data.vendidos_completo > 0 && <Item label="Bidones completos" value={data.vendidos_completo} color="amber" icon="-" />}
+                  {data.vendidos_prestamo > 0 && <Item label="Prestamos" value={data.vendidos_prestamo} color="red" icon="-" />}
                   {data.vendidos_producto > 0 && <Item label="Productos" value={data.vendidos_producto} color="slate" icon="-" />}
                   {(data.vendidos_recarga + data.vendidos_completo + data.vendidos_prestamo + data.vendidos_producto) === 0 && (
                     <p className="text-sm text-slate-400 col-span-2">Sin ventas de bidones hoy</p>
@@ -69,14 +68,14 @@ export default function ResumenBidones({ cajaId, autoOpen = false }) {
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Devoluciones</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <Item label="Vacios recogidos" value={data.vacios_recibidos_ventas} color="blue" icon="+" />
+                  <Item label="Vacios recibidos (ventas)" value={data.vacios_recibidos_ventas} color="blue" icon="+" />
                   <Item label="Devueltos (deudas)" value={data.devueltos_deuda} color="green" icon="+" />
                 </div>
               </div>
 
-              {/* Stock al cierre de caja */}
+              {/* Stock actual */}
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stock al cierre de caja</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Stock actual</p>
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50">

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { getBonificaciones, getBonificacionesDetalle } from '../../services/ventasService';
-import BonificacionesAnalytics from './BonificacionesAnalytics';
 
 function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function hace30() { const d = new Date(); d.setDate(d.getDate()-30); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -11,7 +10,6 @@ function fmtHora(dt) { if (!dt) return ''; return new Date(dt).toLocaleTimeStrin
 const inputCls = 'px-3 py-1.5 text-sm border border-slate-300 rounded-lg';
 
 export default function Bonificaciones() {
-  const [tab, setTab] = useState('listado');
   const [fi, setFi] = useState(hace30());
   const [ff, setFf] = useState(today());
   const [data, setData] = useState([]);
@@ -57,21 +55,6 @@ export default function Bonificaciones() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-slate-100 rounded-xl p-1 w-fit">
-          <button onClick={() => setTab('listado')}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${tab === 'listado' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>
-            Listado
-          </button>
-          <button onClick={() => setTab('analytics')}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${tab === 'analytics' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500'}`}>
-            Reportes
-          </button>
-        </div>
-
-        {tab === 'analytics' && <BonificacionesAnalytics />}
-
-        {tab === 'listado' && <>
         {/* Filtros */}
         <div className="flex items-center gap-2 flex-wrap">
           <input type="date" value={fi} onChange={e => setFi(e.target.value)} className={inputCls} />
@@ -128,10 +111,7 @@ export default function Bonificaciones() {
           </table>
         </div>
 
-
-      </>}
-
-      {/* Modal detalle */}
+        {/* Modal detalle */}
         {detalle && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDetalle(null)}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
