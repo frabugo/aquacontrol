@@ -927,9 +927,79 @@ exports.prediccion = async (req, res) => {
          FROM presentaciones WHERE activo = 1 AND es_retornable = 1`
     );
 
+    // 8. Ventas diarias en UNIDADES (para gráfico toggle)
+    const [ventasUnidades] = await db.query(
+      `SELECT DATE(v.fecha_hora) AS fecha,
+              SUM(d.cantidad) AS unidades
+         FROM venta_detalle d
+         JOIN ventas v ON v.id = d.venta_id
+        WHERE v.estado != 'cancelada'
+          AND v.fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+          AND d.tipo_linea IN ('recarga','compra_bidon','prestamo','bonificacion')
+        GROUP BY DATE(v.fecha_hora)
+        ORDER BY fecha ASC`,
+      [dias]
+    );
+
+    // 9. Patrón quincena (primera vs segunda mitad del mes)
+    const [patronQuincena] = await db.query(
+      `SELECT
+         CASE WHEN DAY(fecha_hora) <= 15 THEN 'primera' ELSE 'segunda' END AS quincena,
+         COUNT(*) / COUNT(DISTINCT DATE(fecha_hora)) AS promedio_ventas,
+         SUM(total) / COUNT(DISTINCT DATE(fecha_hora)) AS promedio_monto,
+         COUNT(DISTINCT DATE(fecha_hora)) AS dias_contados
+       FROM ventas
+       WHERE estado != 'cancelada'
+         AND fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+       GROUP BY quincena`,
+      [dias]
+    );
+
+    // 10. Ventas por tipo de cliente
+    const [ventasPorTipo] = await db.query(
+      `SELECT c.tipo,
+              COUNT(DISTINCT v.id) AS num_ventas,
+              COUNT(DISTINCT c.id) AS num_clientes,
+              COALESCE(SUM(v.total), 0) AS monto_total,
+              SUM(d.cantidad) AS unidades_total,
+              COUNT(DISTINCT DATE(v.fecha_hora)) AS dias_con_venta,
+              ROUND(SUM(d.cantidad) / COUNT(DISTINCT DATE(v.fecha_hora)), 1) AS promedio_unidades_dia
+         FROM ventas v
+         JOIN clientes c ON c.id = v.cliente_id
+         JOIN venta_detalle d ON d.venta_id = v.id
+        WHERE v.estado != 'cancelada'
+          AND v.fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+          AND d.tipo_linea IN ('recarga','compra_bidon','prestamo','bonificacion')
+        GROUP BY c.tipo
+        ORDER BY monto_total DESC`,
+      [dias]
+    );
+
+    // 11. Días sin actividad (para detectar días que no se trabaja)
+    const [diasSinVentas] = await db.query(
+      `SELECT DAYOFWEEK(d.fecha) AS dia_semana,
+              COUNT(*) AS dias_sin_venta
+         FROM (
+           SELECT DATE(fecha_hora) AS fecha FROM ventas
+           WHERE estado != 'cancelada'
+             AND fecha_hora >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+           GROUP BY DATE(fecha_hora)
+         ) AS con_venta
+         RIGHT JOIN (
+           SELECT CURDATE() - INTERVAL seq DAY AS fecha
+           FROM (SELECT @row := @row + 1 AS seq FROM information_schema.columns, (SELECT @row := -1) r LIMIT 180) nums
+           WHERE CURDATE() - INTERVAL seq DAY >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+         ) AS d ON d.fecha = con_venta.fecha
+         WHERE con_venta.fecha IS NULL
+         GROUP BY DAYOFWEEK(d.fecha)
+         ORDER BY dias_sin_venta DESC`,
+      [dias, dias]
+    );
+
     res.json({
       dias,
       ventas_diarias: ventasDiarias,
+      ventas_unidades: ventasUnidades,
       patron_semanal: patronSemanal,
       top_productos: topProductos,
       top_clientes: topClientes,
@@ -939,6 +1009,9 @@ exports.prediccion = async (req, res) => {
       },
       demanda_semanal: demandaSemanal,
       stock_actual: stockActual,
+      patron_quincena: patronQuincena,
+      ventas_por_tipo: ventasPorTipo,
+      dias_sin_ventas: diasSinVentas,
     });
   } catch (err) {
     console.error('ventas.prediccion:', err.message);
