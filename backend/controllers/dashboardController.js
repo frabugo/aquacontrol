@@ -161,6 +161,43 @@ exports.getIndicadores = async (req, res) => {
       },
     };
 
+    // Clientes que dejaron de comprar (frecuencia vs días sin comprar)
+    const [clientesInactivos] = await db.query(
+      `SELECT c.id, c.nombre, c.tipo, c.telefono, c.saldo_dinero, c.bidones_prestados,
+              MAX(v.fecha_hora) AS ultima_compra,
+              DATEDIFF(CURDATE(), MAX(v.fecha_hora)) AS dias_sin_comprar,
+              COUNT(DISTINCT DATE(v.fecha_hora)) AS dias_con_compra,
+              DATEDIFF(MAX(v.fecha_hora), MIN(v.fecha_hora)) AS rango_dias,
+              COUNT(v.id) AS total_ventas
+         FROM clientes c
+         JOIN ventas v ON v.cliente_id = c.id AND v.estado != 'cancelada'
+        WHERE c.activo = 1
+        GROUP BY c.id
+        HAVING dias_sin_comprar > GREATEST(3,
+          ROUND(rango_dias / NULLIF(dias_con_compra, 0) * 1.5)
+        )
+        ORDER BY dias_sin_comprar DESC
+        LIMIT 15`
+    );
+
+    result.clientes_inactivos = clientesInactivos.map(c => {
+      const frecuencia = c.rango_dias > 0 && c.dias_con_compra > 1
+        ? Math.round(c.rango_dias / (c.dias_con_compra - 1))
+        : null;
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        tipo: c.tipo,
+        telefono: c.telefono,
+        saldo_dinero: Number(c.saldo_dinero),
+        bidones_prestados: c.bidones_prestados,
+        ultima_compra: c.ultima_compra,
+        dias_sin_comprar: c.dias_sin_comprar,
+        frecuencia_dias: frecuencia,
+        total_ventas: c.total_ventas,
+      };
+    });
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

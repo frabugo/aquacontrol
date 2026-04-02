@@ -315,6 +315,73 @@ export default function Dashboard() {
           </table>
         )}
       </div>
+      {/* Clientes que dejaron de comprar */}
+      {!loading && data?.clientes_inactivos?.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h2 className="text-lg font-semibold text-slate-800">Clientes que dejaron de comprar</h2>
+            <p className="text-xs text-slate-500">Clientes que llevan mas tiempo sin comprar de lo habitual</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+                <th className="px-4 py-3">Cliente</th>
+                <th className="px-4 py-3">Tipo</th>
+                <th className="px-4 py-3 text-center">Dias sin comprar</th>
+                <th className="px-4 py-3 text-center">Frecuencia habitual</th>
+                <th className="px-4 py-3 text-center">Ultima compra</th>
+                <th className="px-4 py-3 text-right">Deuda</th>
+                <th className="px-4 py-3 text-center">Bidones</th>
+                <th className="px-4 py-3">Telefono</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.clientes_inactivos.map(c => {
+                const urgencia = c.dias_sin_comprar > (c.frecuencia_dias || 7) * 3 ? 'text-red-600 bg-red-50'
+                  : c.dias_sin_comprar > (c.frecuencia_dias || 7) * 2 ? 'text-orange-600 bg-orange-50'
+                  : 'text-yellow-700 bg-yellow-50';
+                return (
+                  <tr key={c.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-800">{c.nombre}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tipoBadge[c.tipo] || 'bg-slate-100 text-slate-600'}`}>
+                        {c.tipo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${urgencia}`}>
+                        {c.dias_sin_comprar}d
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-slate-500">
+                      {c.frecuencia_dias ? `cada ${c.frecuencia_dias}d` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-500">
+                      {c.ultima_compra ? new Date(c.ultima_compra).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {c.saldo_dinero > 0
+                        ? <span className="text-red-600 font-medium">{formatSoles(c.saldo_dinero)}</span>
+                        : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {c.bidones_prestados > 0
+                        ? <span className="font-semibold text-orange-600">{c.bidones_prestados}</span>
+                        : <span className="text-slate-400">0</span>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">
+                      {c.telefono
+                        ? <a href={`https://wa.me/51${c.telefono.replace(/\D/g,'')}`} target="_blank" rel="noreferrer"
+                            className="text-green-600 hover:text-green-700 hover:underline">{c.telefono}</a>
+                        : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Layout>
   );
 }
