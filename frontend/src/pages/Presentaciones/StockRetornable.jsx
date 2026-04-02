@@ -3,16 +3,16 @@ import { getMovimientosStock, registrarMovimiento } from '../../services/present
 
 /* ── Definición de movimientos disponibles ── */
 const MOVIMIENTOS = [
-  { tipo: 'rotura',           label: 'Rotura',              hint: 'Bidón dañado → Rotos',           origenOpts: ['lleno','vacio'] },
-  { tipo: 'baja',             label: 'Dar de baja',         hint: 'Roto → Dado de baja definitiva', origenOpts: null },
-  { tipo: 'reparacion_inicio',label: 'Iniciar reparación',  hint: 'Roto → En reparación',           origenOpts: null },
-  { tipo: 'reparacion_fin',   label: 'Fin de reparación',   hint: 'En reparación → Vacío',          origenOpts: null },
-  { tipo: 'lavado_inicio',    label: 'Iniciar lavado',      hint: 'Vacío → En lavado',              origenOpts: null },
-  { tipo: 'lavado_fin',       label: 'Fin de lavado',       hint: 'En lavado → Vacío',              origenOpts: null },
-  { tipo: 'llenado',          label: 'Llenado',             hint: 'Vacío → Lleno (producción)',     origenOpts: null },
-  { tipo: 'compra_empresa',   label: 'Compra empresa',      hint: 'Nuevos bidones vacíos',          origenOpts: null },
-  { tipo: 'perdida',          label: 'Pérdida',             hint: 'Bidón perdido / extraviado',     origenOpts: ['lleno','vacio'] },
-  { tipo: 'ajuste',           label: 'Ajuste manual',       hint: 'Corrección de inventario',       origenOpts: null },
+  { tipo: 'rotura',           label: 'Rotura',              hint: 'Registrar bidón roto (elegir si estaba lleno o vacío)',  origenOpts: ['lleno','vacio'] },
+  { tipo: 'baja',             label: 'Dar de baja',         hint: 'Retirar bidón roto definitivamente',                    origenOpts: null },
+  { tipo: 'reparacion_inicio',label: 'Iniciar reparación',  hint: 'Enviar bidón roto a reparación',                        origenOpts: null },
+  { tipo: 'reparacion_fin',   label: 'Fin de reparación',   hint: 'Bidón reparado vuelve como vacío',                      origenOpts: null },
+  { tipo: 'lavado_inicio',    label: 'Iniciar lavado',      hint: 'Enviar bidón vacío a lavado',                           origenOpts: null },
+  { tipo: 'lavado_fin',       label: 'Fin de lavado',       hint: 'Bidón lavado vuelve como vacío limpio',                 origenOpts: null },
+  { tipo: 'llenado',          label: 'Llenado',             hint: 'Llenar bidón vacío (producción)',                        origenOpts: null },
+  { tipo: 'compra_empresa',   label: 'Compra empresa',      hint: 'Ingreso de bidones nuevos (entran a lavado)',            origenOpts: null },
+  { tipo: 'perdida',          label: 'Pérdida / Extravío',  hint: 'Bidón perdido (elegir si estaba lleno o vacío)',         origenOpts: ['lleno','vacio'] },
+  { tipo: 'ajuste',           label: 'Ajuste manual',       hint: 'Corrección de inventario',                              origenOpts: null },
 ];
 
 const ESTADOS_LABEL = {
@@ -133,13 +133,20 @@ function ModalMovimiento({ presentacion, onClose, onSaved }) {
           {/* Estado origen para rotura/pérdida */}
           {tipoInfo?.origenOpts && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Estado del bidón</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tipo === 'rotura' ? '¿El bidón estaba lleno o vacío?' : '¿Qué tipo de bidón se perdió?'}
+              </label>
               <div className="flex gap-2">
                 {tipoInfo.origenOpts.map(o => (
                   <button key={o} type="button" onClick={() => setOrigen(o)}
-                    className={`flex-1 py-2 text-sm rounded-lg border font-medium transition
-                      ${origen === o ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
-                    {ESTADOS_LABEL[o]}
+                    className={`flex-1 py-2.5 text-sm rounded-lg border font-medium transition
+                      ${origen === o
+                        ? o === 'lleno' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-slate-100 border-slate-400 text-slate-700'
+                        : 'border-slate-300 text-slate-500 hover:bg-slate-50'}`}>
+                    {o === 'lleno' ? 'Bidón lleno' : 'Bidón vacío'}
+                    <span className="block text-xs font-normal mt-0.5 opacity-70">
+                      {o === 'lleno' ? `Resta de ${presentacion?.stock_llenos ?? 0} llenos` : `Resta de ${presentacion?.stock_vacios ?? 0} vacíos`}
+                    </span>
                   </button>
                 ))}
               </div>
