@@ -1005,23 +1005,22 @@ exports.prediccion = async (req, res) => {
       diasSinVentas = dsv;
     }
 
-    // 12. Backtesting: calcular en JS — para últimos 14 días, predicción (promedio día semana previo) vs real
-    // Usar ventasDiarias que ya tenemos
+    // 12. Backtesting: para últimos 14 días, predicción (promedio día semana previo) vs real
     const backtestRows = [];
-    if (ventasDiarias.length >= 14) {
-      // Unidades diarias indexadas por fecha
-      const unidadesMap = {};
-      for (const u of ventasUnidades) unidadesMap[u.fecha] = Number(u.unidades);
+    const toStr = (f) => f instanceof Date ? f.toISOString().slice(0, 10) : String(f).slice(0, 10);
 
-      // Para cada uno de los últimos 14 días
+    if (ventasDiarias.length >= 14) {
+      const unidadesMap = {};
+      for (const u of ventasUnidades) unidadesMap[toStr(u.fecha)] = Number(u.unidades);
+
       const ultimos14 = ventasDiarias.slice(-14);
       for (const dia of ultimos14) {
-        const fecha = new Date(dia.fecha + 'T12:00:00');
-        const dow = fecha.getDay(); // 0=dom...6=sab
+        const fechaStr = toStr(dia.fecha);
+        const fecha = new Date(fechaStr + 'T12:00:00');
+        const dow = fecha.getDay();
 
-        // Buscar todos los días anteriores con el mismo dow
         const anteriores = ventasDiarias.filter(d => {
-          const df = new Date(d.fecha + 'T12:00:00');
+          const df = new Date(toStr(d.fecha) + 'T12:00:00');
           return df < fecha && df.getDay() === dow;
         });
 
@@ -1029,16 +1028,16 @@ exports.prediccion = async (req, res) => {
           ? anteriores.reduce((s, d) => s + Number(d.total), 0) / anteriores.length
           : null;
 
-        const anterioresUds = anteriores.map(d => unidadesMap[d.fecha]).filter(v => v != null);
+        const anterioresUds = anteriores.map(d => unidadesMap[toStr(d.fecha)]).filter(v => v != null);
         const predUnidades = anterioresUds.length > 0
           ? anterioresUds.reduce((s, v) => s + v, 0) / anterioresUds.length
           : null;
 
         backtestRows.push({
-          fecha: dia.fecha,
-          dia_semana: fecha.getDay() + 1, // 1=dom compatible con DAYOFWEEK
+          fecha: fechaStr,
+          dia_semana: dow + 1,
           real_total: Number(dia.total),
-          real_unidades: unidadesMap[dia.fecha] || 0,
+          real_unidades: unidadesMap[fechaStr] || 0,
           pred_total: predTotal != null ? Math.round(predTotal) : null,
           pred_unidades: predUnidades != null ? Math.round(predUnidades) : null,
         });
