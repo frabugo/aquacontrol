@@ -122,7 +122,7 @@ export default function CobroDeuda() {
     const montoNum = Number(monto);
     if (!clienteId) return setError('Selecciona un cliente');
     if (!montoNum || montoNum <= 0) return setError('Ingresa un monto válido');
-    if (montoNum > clienteDeuda) return setError(`El monto excede la deuda (S/ ${clienteDeuda.toFixed(2)})`);
+    if (Math.round(montoNum * 100) > Math.round(clienteDeuda * 100)) return setError(`El monto excede la deuda (S/ ${clienteDeuda.toFixed(2)})`);
 
     setSaving(true);
     try {

@@ -1639,7 +1639,8 @@ exports.cobrarDeuda = async (req, res) => {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: 'El cliente no tiene deuda pendiente' });
     }
-    if (montoNum > Number(cliente.saldo_dinero)) {
+    // Comparar en céntimos (enteros) para evitar falsos positivos por float (ej. 7.00 > 6.9999999)
+    if (Math.round(montoNum * 100) > Math.round(Number(cliente.saldo_dinero) * 100)) {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: `El monto excede la deuda del cliente (S/ ${Number(cliente.saldo_dinero).toFixed(2)})` });
     }
