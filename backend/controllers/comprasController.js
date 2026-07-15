@@ -444,7 +444,8 @@ exports.registrarPago = async (req, res) => {
       await conn.rollback(); conn.release();
       return res.status(400).json({ error: 'El proveedor no tiene deuda pendiente' });
     }
-    if (Number(monto) > Number(proveedor.saldo_deuda)) {
+    // Comparar en céntimos (enteros) para evitar falsos positivos por float (ej. 154.50 > 154.4999999)
+    if (Math.round(Number(monto) * 100) > Math.round(Number(proveedor.saldo_deuda) * 100)) {
       await conn.rollback(); conn.release();
       return res.status(400).json({
         error: `El monto (S/ ${Number(monto).toFixed(2)}) excede la deuda del proveedor (S/ ${Number(proveedor.saldo_deuda).toFixed(2)})`
@@ -465,7 +466,8 @@ exports.registrarPago = async (req, res) => {
         [compra_id]
       );
       const saldoCompra = Number(compra.total) - Number(pagosCompra.t);
-      if (Number(monto) > saldoCompra) {
+      // Comparar en céntimos para evitar falsos positivos por float
+      if (Math.round(Number(monto) * 100) > Math.round(saldoCompra * 100)) {
         await conn.rollback(); conn.release();
         return res.status(400).json({
           error: `El monto excede la deuda de esta compra (S/ ${saldoCompra.toFixed(2)})`
