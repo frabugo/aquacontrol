@@ -627,17 +627,16 @@ exports.anular = async (req, res) => {
           [dev.cantidad, dev.ruta_id, dev.presentacion_id]
         );
       }
-      // Revertir stock_movimiento de reparto
+      // Revertir el movimiento de reparto con un movimiento inverso.
+      // NO borrar la fila original: el filtro por presentacion+cliente+cantidad
+      // puede apuntar a otra devolución del mismo cliente todavía vigente.
       await conn.query(
-        `DELETE FROM stock_movimientos
-         WHERE presentacion_id = ?
-           AND tipo = 'devolucion_cliente'
-           AND estado_destino = 'en_ruta_vacio'
-           AND cliente_id = ?
-           AND cantidad = ?
-         ORDER BY id DESC
-         LIMIT 1`,
-        [dev.presentacion_id, dev.cliente_id, dev.cantidad]
+        `INSERT INTO stock_movimientos
+           (presentacion_id, tipo, cantidad, estado_origen, estado_destino,
+            cliente_id, registrado_por, motivo)
+         VALUES (?, 'ajuste', ?, 'en_ruta_vacio', 'vacio', ?, ?, ?)`,
+        [dev.presentacion_id, dev.cantidad, dev.cliente_id, req.user.id,
+         `Reversa de devolución #${dev.id} anulada`]
       );
     } else {
       // Manual: los vacíos fueron a stock_en_lavado en planta
@@ -647,16 +646,14 @@ exports.anular = async (req, res) => {
       );
 
       if (pres && pres.es_retornable) {
+        // Movimiento inverso en vez de borrar la fila original (ver nota arriba)
         await conn.query(
-          `DELETE FROM stock_movimientos
-           WHERE presentacion_id = ?
-             AND tipo = 'devolucion_cliente'
-             AND estado_destino = 'en_lavado'
-             AND cliente_id = ?
-             AND cantidad = ?
-           ORDER BY id DESC
-           LIMIT 1`,
-          [dev.presentacion_id, dev.cliente_id, dev.cantidad]
+          `INSERT INTO stock_movimientos
+             (presentacion_id, tipo, cantidad, estado_origen, estado_destino,
+              cliente_id, registrado_por, motivo)
+           VALUES (?, 'ajuste', ?, 'en_lavado', 'en_ruta_vacio', ?, ?, ?)`,
+          [dev.presentacion_id, dev.cantidad, dev.cliente_id, req.user.id,
+           `Reversa de devolución #${dev.id} anulada`]
         );
         await conn.query(
           'UPDATE presentaciones SET stock_en_lavado = GREATEST(0, stock_en_lavado - ?) WHERE id = ?',

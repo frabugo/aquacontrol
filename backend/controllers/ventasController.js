@@ -695,6 +695,25 @@ exports.cancelar = async (req, res) => {
       );
     }
 
+    // Revertir el Kardex: por cada movimiento de salida de la venta, un movimiento
+    // inverso de entrada. Sin esto el stock vuelve a presentaciones pero
+    // stock_movimientos sigue contando la venta y el Kardex queda corto.
+    const [movsVenta] = await conn.query(
+      "SELECT presentacion_id, cantidad, estado_origen FROM stock_movimientos WHERE venta_id = ? AND tipo = 'venta'",
+      [req.params.id]
+    );
+    for (const mv of movsVenta) {
+      // 'vendido' no es un estado_origen válido → la reversa entra sin origen
+      await conn.query(
+        `INSERT INTO stock_movimientos
+           (presentacion_id, tipo, cantidad, estado_origen, estado_destino,
+            venta_id, cliente_id, registrado_por, motivo)
+         VALUES (?, 'ajuste', ?, NULL, ?, ?, ?, ?, ?)`,
+        [mv.presentacion_id, mv.cantidad, mv.estado_origen || 'lleno', venta.id,
+         venta.cliente_id, req.user.id, `Reversa por cancelación de venta ${venta.folio}`]
+      );
+    }
+
     await conn.query('UPDATE ventas SET estado = ? WHERE id = ?', ['cancelada', req.params.id]);
 
     // Cascade: anular devoluciones vinculadas y revertir stock lavado
@@ -708,13 +727,16 @@ exports.cancelar = async (req, res) => {
         'UPDATE presentaciones SET stock_en_lavado = GREATEST(0, stock_en_lavado - ?) WHERE id = ?',
         [dev.cantidad, dev.presentacion_id]
       );
-      // Eliminar el stock_movimiento que envió bidones a lavado
+      // Revertir el movimiento que envió bidones a lavado con un movimiento inverso.
+      // NO borrar la fila original: el filtro por presentacion+cliente+cantidad puede
+      // apuntar a la devolución de otra venta todavía vigente.
       await conn.query(
-        `DELETE FROM stock_movimientos
-         WHERE presentacion_id = ? AND tipo = 'devolucion_cliente'
-           AND estado_destino = 'en_lavado' AND cliente_id = ? AND cantidad = ?
-         ORDER BY id DESC LIMIT 1`,
-        [dev.presentacion_id, dev.cliente_id, dev.cantidad]
+        `INSERT INTO stock_movimientos
+           (presentacion_id, tipo, cantidad, estado_origen, estado_destino,
+            venta_id, cliente_id, registrado_por, motivo)
+         VALUES (?, 'ajuste', ?, 'en_lavado', 'en_ruta_vacio', ?, ?, ?, ?)`,
+        [dev.presentacion_id, dev.cantidad, venta.id, dev.cliente_id, req.user.id,
+         `Reversa devolución por cancelación de venta ${venta.folio}`]
       );
     }
     await conn.query(

@@ -419,8 +419,12 @@ BEGIN
       UPDATE presentaciones SET stock_vacios = GREATEST(0, stock_vacios - NEW.cantidad_producida) WHERE id = NEW.presentacion_id;
     END IF;
 
+    -- estado_origen 'vacio' solo si es retornable: el hielo y demas no retornables
+    -- no consumen un envase vacio, y marcarlo deja vacios negativos en el Kardex
     INSERT INTO stock_movimientos (presentacion_id, tipo, cantidad, registrado_por, estado_origen, estado_destino)
-    VALUES (NEW.presentacion_id, 'llenado', NEW.cantidad_producida, NEW.operario_id, 'vacio', 'lleno');
+    VALUES (NEW.presentacion_id, 'llenado', NEW.cantidad_producida, NEW.operario_id,
+            IF((SELECT es_retornable FROM presentaciones WHERE id = NEW.presentacion_id) = 1, 'vacio', NULL),
+            'lleno');
   END IF;
 END`)
 ).catch(err => console.error('Auto-migrate trg_completar_lote:', err.message));
